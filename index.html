@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PhimReview.vn</title>
+<title>WWW-YOUTOBE.COM</title>
 
 <style>
 *{
@@ -13,78 +13,109 @@
 }
 
 body{
-    background:#e7b9bf;
+    background:#e6b8be;
     font-family:Arial,sans-serif;
     min-height:100vh;
+    display:flex;
+    flex-direction:column;
 }
 
 .header{
     width:100%;
     background:#000;
-    text-align:center;
-    padding:20px 0;
 }
 
-.logo{
-    color:#ff0048;
-    font-size:clamp(40px,12vw,110px);
-    font-weight:bold;
-    text-shadow:
-        3px 3px 0 #cfcfcf,
-        -1px -1px 0 #cfcfcf,
-        1px -1px 0 #cfcfcf,
-        -1px 1px 0 #cfcfcf;
-}
-
-.container{
+.header img{
     width:100%;
+    display:block;
+}
+
+.main{
+    flex:1;
     display:flex;
     justify-content:center;
-    padding:12vw 0 0;
+    padding:7vw 4vw;
 }
 
 .video-box{
     width:min(90vw,760px);
     aspect-ratio:16/9;
     background:#000;
-    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 
 .play-btn{
-    position:absolute;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    width:clamp(60px,12vw,105px);
-    height:clamp(60px,12vw,105px);
-    border:4px solid #cfcfcf;
+    width:18%;
+    max-width:150px;
+    min-width:70px;
+    aspect-ratio:1;
     border-radius:50%;
+    background:#fff;
+    position:relative;
 }
 
 .play-btn::before{
     content:"";
     position:absolute;
-    left:50%;
     top:50%;
-    transform:translate(-35%,-50%);
-    width:0;
-    height:0;
+    left:54%;
+    transform:translate(-50%,-50%);
     border-top:18px solid transparent;
     border-bottom:18px solid transparent;
-    border-left:28px solid #cfcfcf;
+    border-left:28px solid #000;
+}
+
+.footer{
+    text-align:center;
+    padding:40px 20px;
+    color:#000;
+}
+
+.footer p{
+    font-size:clamp(18px,3vw,28px);
+    font-weight:700;
+    line-height:1.15;
+    margin-bottom:10px;
+}
+
+@media (max-width:768px){
+
+    .play-btn::before{
+        border-top:10px solid transparent;
+        border-bottom:10px solid transparent;
+        border-left:16px solid #000;
+    }
+
+    .footer{
+        padding:30px 15px;
+    }
 }
 </style>
 </head>
+
 <body>
 
 <div class="header">
-    <div class="logo">PhimReview.vn</div>
+    <img src="https://i.imgur.com/XQXg6Xq.png" alt="WWW-YOUTOBE.COM">
 </div>
 
-<div class="container">
+<div class="main">
     <div class="video-box">
         <div class="play-btn"></div>
     </div>
+</div>
+
+<div class="footer">
+    <p>© 2026 www-youtobe.com. All Rights Reserved.</p>
+
+    <p>
+        PhimReview.vn là trang web đánh giá và giới thiệu phim.<br>
+        Mọi nội dung được tổng hợp từ nhiều nguồn công khai.<br>
+        Nếu có vấn đề liên quan đến bản quyền, vui lòng liên hệ:<br>
+        contact@phimreview.vn
+    </p>
 </div>
 
 </body>
