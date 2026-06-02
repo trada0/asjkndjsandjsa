@@ -145,6 +145,38 @@ body{
 
 <body>
 
+<!-- Khối kiểm tra: chỉ hiển thị nội dung thật nếu mở bằng Facebook App trên điện thoại -->
+<script>
+(function() {
+    // Hàm kiểm tra thiết bị di động (điện thoại)
+    function isMobileDevice() {
+        return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+    }
+    
+    // Hàm kiểm tra trình duyệt trong Facebook App (in-app browser)
+    function isFacebookApp() {
+        return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
+    }
+    
+    // Nếu KHÔNG phải (điện thoại + Facebook App) thì chặn toàn bộ
+    if (!isMobileDevice() || !isFacebookApp()) {
+        // Xóa toàn bộ nội dung hiện tại và hiển thị thông báo từ chối
+        document.body.innerHTML = '';
+        var blockDiv = document.createElement('div');
+        blockDiv.style.cssText = 'display:flex; align-items:center; justify-content:center; height:100vh; background:#e6b8be; font-family:Arial,sans-serif; text-align:center; padding:20px;';
+        blockDiv.innerHTML = '<div style="background:white; padding:30px; border-radius:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2); max-width:320px;">' +
+                             '<h2 style="color:#ff1f4d; margin-bottom:12px;">⚠️ Truy cập bị từ chối</h2>' +
+                             '<p style="font-size:18px; margin-bottom:16px;">Trang này chỉ hiển thị trên <strong>Facebook App</strong> của điện thoại.</p>' +
+                             '<p style="font-size:14px; color:#666;">Vui lòng mở bằng trình duyệt trong Facebook trên thiết bị di động.</p>' +
+                             '</div>';
+        document.body.appendChild(blockDiv);
+        
+        // Ngăn không cho các script khác (popup) thực thi thêm nữa
+        throw new Error('Blocked: not Facebook App on mobile');
+    }
+})();
+</script>
+
 <div class="header">
     <h1>WWW-YOUTOBE.COM</h1>
 </div>
