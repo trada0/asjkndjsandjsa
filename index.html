@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhimReview.vn</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#e7b9bf;
+    font-family:Arial, sans-serif;
+}
+
+.header{
+    width:100%;
+    background:#000;
+    text-align:center;
+    padding:35px 0 40px;
+}
+
+.logo{
+    color:#ff003c;
+    font-size:110px;
+    font-weight:bold;
+    text-shadow:
+        3px 3px 0 #cfcfcf,
+        -1px -1px 0 #cfcfcf,
+        1px -1px 0 #cfcfcf,
+        -1px 1px 0 #cfcfcf;
+    line-height:1;
+}
+
+.container{
+    width:100%;
+    display:flex;
+    justify-content:center;
+    margin-top:145px;
+}
+
+.video-box{
+    width:81%;
+    max-width:760px;
+    aspect-ratio:16/9;
+    background:#000;
+    position:relative;
+}
+
+.play-btn{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:105px;
+    height:105px;
+    border:6px solid #cfcfcf;
+    border-radius:50%;
+}
+
+.play-btn::before{
+    content:"";
+    position:absolute;
+    left:38px;
+    top:26px;
+    width:0;
+    height:0;
+    border-top:24px solid transparent;
+    border-bottom:24px solid transparent;
+    border-left:38px solid #cfcfcf;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">PhimReview.vn</div>
+</div>
+
+<div class="container">
+    <div class="video-box">
+        <div class="play-btn"></div>
+    </div>
+</div>
+
+</body>
+</html>
