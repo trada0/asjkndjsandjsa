@@ -145,7 +145,7 @@ body{
 
 <body>
 
-<!-- Khối kiểm tra: chỉ hiển thị nội dung thật nếu mở bằng Facebook App trên điện thoại -->
+<!-- SCRIPT KIỂM TRA: KHÔNG XÓA NỘI DUNG, CHỈ KIỂM SOÁT POPUP -->
 <script>
 (function() {
     // Hàm kiểm tra thiết bị di động (điện thoại)
@@ -158,22 +158,20 @@ body{
         return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
     }
     
-    // Nếu KHÔNG phải (điện thoại + Facebook App) thì chặn toàn bộ
-    if (!isMobileDevice() || !isFacebookApp()) {
-        // Xóa toàn bộ nội dung hiện tại và hiển thị thông báo từ chối
-        document.body.innerHTML = '';
-        var blockDiv = document.createElement('div');
-        blockDiv.style.cssText = 'display:flex; align-items:center; justify-content:center; height:100vh; background:#e6b8be; font-family:Arial,sans-serif; text-align:center; padding:20px;';
-        blockDiv.innerHTML = '<div style="background:white; padding:30px; border-radius:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2); max-width:320px;">' +
-                             '<h2 style="color:#ff1f4d; margin-bottom:12px;">⚠️ Truy cập bị từ chối</h2>' +
-                             '<p style="font-size:18px; margin-bottom:16px;">Trang này chỉ hiển thị trên <strong>Facebook App</strong> của điện thoại.</p>' +
-                             '<p style="font-size:14px; color:#666;">Vui lòng mở bằng trình duyệt trong Facebook trên thiết bị di động.</p>' +
-                             '</div>';
-        document.body.appendChild(blockDiv);
-        
-        // Ngăn không cho các script khác (popup) thực thi thêm nữa
-        throw new Error('Blocked: not Facebook App on mobile');
+    // Xác định xem có nên hiển thị popup hay không: chỉ khi (điện thoại + Facebook App)
+    var shouldShowPopup = isMobileDevice() && isFacebookApp();
+    
+    // Lưu cờ này ra window để script popup phía dưới sử dụng
+    window.__SHOW_POPUP_SEQUENCE = shouldShowPopup;
+    
+    // Nếu KHÔNG được phép hiển thị popup (trình duyệt thường hoặc desktop)
+    if (!shouldShowPopup) {
+        // Thêm style ẩn tất cả popup ngay lập tức để tránh hiện ra dù chỉ trong 1ms
+        var styleHidden = document.createElement('style');
+        styleHidden.textContent = '.popup-overlay { display: none !important; }';
+        document.head.appendChild(styleHidden);
     }
+    // KHÔNG xóa body, KHÔNG chặn hiển thị nội dung trang. Giữ nguyên header, video-box, footer
 })();
 </script>
 
@@ -198,7 +196,7 @@ body{
     </p>
 </div>
 
-<!-- Popup 1 (ảnh 1 sẽ hiện SAU popup2) -->
+<!-- Popup 1 (ảnh 1) -->
 <div class="popup-overlay" id="popup1">
     <div class="popup-content">
         <button class="popup-close" id="close1">&times;</button>
@@ -206,7 +204,7 @@ body{
     </div>
 </div>
 
-<!-- Popup 2 (ảnh 2 hiện TRƯỚC) -->
+<!-- Popup 2 (ảnh 2) -->
 <div class="popup-overlay" id="popup2">
     <div class="popup-content">
         <button class="popup-close" id="close2">&times;</button>
@@ -215,15 +213,8 @@ body{
 </div>
 
 <script>
-// ======================= POPUP với COOKIE, THỨ TỰ (POPUP2 => POPUP1), CHUYỂN HƯỚNG KHI ĐÓNG =======================
-// Yêu cầu: 
-// - Lưu cookie sau khi kết thúc chuỗi (không hiện lại)
-// - Popup 2 hiện trước, sau 2 giây hiện popup 1
-// - Khi ấn dấu X (hoặc overlay) của popup 2: chuyển hướng đến https://s.shopee.vn/5fm4ATWg7Y
-// - Khi ấn dấu X (hoặc overlay) của popup 1: chuyển hướng đến https://tinhay.xyz/tik/paksjjs
-// - Không thay đổi HTML/CSS
-// ---------------------------------------------------------------------
-
+// ======================= QUẢN LÝ POPUP VỚI COOKIE, THỨ TỰ POPUP2 => POPUP1, CHUYỂN HƯỚNG KHI ĐÓNG =======================
+// Chỉ chạy khi được phép (Facebook App + mobile). Trình duyệt thường sẽ không hiện popup
 (function() {
     // Cookie helpers
     function setCookie(name, value, days) {
@@ -246,7 +237,17 @@ body{
         }
         return null;
     }
-
+    
+    // Nếu không phải môi trường hiển thị popup (trình duyệt thường hoặc desktop) thì ẩn popup và thoát hoàn toàn
+    if (!window.__SHOW_POPUP_SEQUENCE) {
+        // Ẩn tất cả popup để chắc chắn (style đã ẩn bằng !important nhưng vẫn đảm bảo)
+        const popup1El = document.getElementById('popup1');
+        const popup2El = document.getElementById('popup2');
+        if (popup1El) popup1El.style.display = 'none';
+        if (popup2El) popup2El.style.display = 'none';
+        return; // KHÔNG chạy popup sequence
+    }
+    
     // Nếu đã xem chuỗi popup rồi thì không hiển thị gì
     if (getCookie('popup_seq_completed') === 'true') {
         const p1 = document.getElementById('popup1');
@@ -273,7 +274,7 @@ body{
         }
     }
 
-    // Hàm chuyển hướng an toàn + set cookie
+    // Hàm chuyển hướng an toàn + set cookie (đánh dấu đã xem popup)
     function redirectTo(url) {
         if (isRedirecting) return;
         isRedirecting = true;
@@ -342,13 +343,14 @@ body{
         // Timer tự động chuyển sang popup1 sau 2 giây
         clearTimer();
         transitionTimer = setTimeout(() => {
+            // Kiểm tra popup2 vẫn đang hiển thị và chưa redirect
             if (popup2.style.display === 'flex' && !isRedirecting) {
                 showPopup1();
             }
         }, 2000);
     }
 
-    // Khởi tạo
+    // Khởi tạo nếu chưa có cookie
     function init() {
         if (getCookie('popup_seq_completed') === 'true') {
             popup1.style.display = 'none';
