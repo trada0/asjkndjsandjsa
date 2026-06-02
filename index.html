@@ -89,6 +89,45 @@ body{
     margin-bottom:10px;
 }
 
+.popup-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.8);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:20px;
+}
+
+.popup-content{
+    position:relative;
+    width:min(95vw,600px);
+}
+
+.popup-content img{
+    width:100%;
+    height:auto;
+    display:block;
+    border-radius:12px;
+}
+
+.popup-close{
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:50%;
+    background:#fff;
+    color:#000;
+    font-size:28px;
+    line-height:40px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
 @media (max-width:768px){
 
     .play-btn::before{
@@ -126,6 +165,55 @@ body{
         contact@phimreview.vn
     </p>
 </div>
+
+<!-- Popup 1 -->
+<div class="popup-overlay" id="popup1">
+    <div class="popup-content">
+        <button class="popup-close" id="close1">&times;</button>
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780385977260_QlAmwNYyhZ.jpg" alt="">
+    </div>
+</div>
+
+<!-- Popup 2 -->
+<div class="popup-overlay" id="popup2" style="display:none;">
+    <div class="popup-content">
+        <button class="popup-close" id="close2">&times;</button>
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780386304641_qJlfGTozxF.jpg" alt="">
+    </div>
+</div>
+
+<script>
+window.addEventListener('load',()=>{
+
+    const popup1=document.getElementById('popup1');
+    const popup2=document.getElementById('popup2');
+
+    popup1.addEventListener('click',(e)=>{
+        if(e.target===popup1){
+            popup1.style.display='none';
+            popup2.style.display='flex';
+        }
+    });
+
+    popup2.addEventListener('click',(e)=>{
+        if(e.target===popup2){
+            popup2.style.display='none';
+        }
+    });
+
+    document.getElementById('close1').addEventListener('click',(e)=>{
+        e.stopPropagation();
+        popup1.style.display='none';
+        popup2.style.display='flex';
+    });
+
+    document.getElementById('close2').addEventListener('click',(e)=>{
+        e.stopPropagation();
+        popup2.style.display='none';
+    });
+
+});
+</script>
 
 </body>
 </html>
