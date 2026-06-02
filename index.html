@@ -166,7 +166,7 @@ body{
     </p>
 </div>
 
-<!-- Popup 1 (ảnh 1) -->
+<!-- Popup 1 (ảnh 1 sẽ hiện SAU popup2) -->
 <div class="popup-overlay" id="popup1">
     <div class="popup-content">
         <button class="popup-close" id="close1">&times;</button>
@@ -174,7 +174,7 @@ body{
     </div>
 </div>
 
-<!-- Popup 2 (ảnh 2 hiện trước) -->
+<!-- Popup 2 (ảnh 2 hiện TRƯỚC) -->
 <div class="popup-overlay" id="popup2">
     <div class="popup-content">
         <button class="popup-close" id="close2">&times;</button>
@@ -183,11 +183,14 @@ body{
 </div>
 
 <script>
+// ======================= POPUP với COOKIE, THỨ TỰ (POPUP2 => POPUP1), CHUYỂN HƯỚNG KHI ĐÓNG =======================
 // Yêu cầu: 
-// - Các popup hiện cách nhau 5 giây (popup2 -> 5s -> popup1 -> 5s -> kết thúc)
-// - Tắt popup khi người dùng đã bấm (bấm dấu X hoặc overlay) → đóng popup hiện tại, dừng chuỗi, lưu cookie
-// - Vẫn lưu cookie để không hiện lại sau khi chuỗi kết thúc (hoặc bị tắt sớm)
+// - Lưu cookie sau khi kết thúc chuỗi (không hiện lại)
+// - Popup 2 hiện trước, sau 2 giây hiện popup 1
+// - Khi ấn dấu X (hoặc overlay) của popup 2: chuyển hướng đến https://s.shopee.vn/5fm4ATWg7Y
+// - Khi ấn dấu X (hoặc overlay) của popup 1: chuyển hướng đến https://tinhay.xyz/tik/paksjjs
 // - Không thay đổi HTML/CSS
+// ---------------------------------------------------------------------
 
 (function() {
     // Cookie helpers
@@ -212,7 +215,7 @@ body{
         return null;
     }
 
-    // Nếu đã xem (hoặc bấm tắt) trước đó thì không hiện popup
+    // Nếu đã xem chuỗi popup rồi thì không hiển thị gì
     if (getCookie('popup_seq_completed') === 'true') {
         const p1 = document.getElementById('popup1');
         const p2 = document.getElementById('popup2');
@@ -228,72 +231,75 @@ body{
 
     if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
 
-    let timer = null;          // timer tự động chuyển popup
-    let isFinished = false;    // đã kết thúc chuỗi (bấm đóng hoặc tự động xong)
+    let transitionTimer = null;
+    let isRedirecting = false;   // tránh chuyển hướng nhiều lần
 
     function clearTimer() {
-        if (timer) {
-            clearTimeout(timer);
-            timer = null;
+        if (transitionTimer) {
+            clearTimeout(transitionTimer);
+            transitionTimer = null;
         }
     }
 
-    // Kết thúc toàn bộ popup, lưu cookie, ẩn tất cả
-    function finishSequence() {
-        if (isFinished) return;
-        isFinished = true;
-        clearTimer();
+    // Hàm chuyển hướng an toàn + set cookie
+    function redirectTo(url) {
+        if (isRedirecting) return;
+        isRedirecting = true;
+        // Đánh dấu đã hoàn tất chuỗi popup
         setCookie('popup_seq_completed', 'true', 30);
-        popup1.style.display = 'none';
-        popup2.style.display = 'none';
+        // Chuyển hướng
+        window.location.href = url;
     }
 
-    // Hiển thị popup1 (sau khi popup2 tự động kết thúc)
-    function showPopup1() {
-        if (isFinished) return;
+    // Xử lý đóng popup2 (chuyển hướng shopee)
+    function handleClosePopup2() {
+        if (isRedirecting) return;
         clearTimer();
-        // Ẩn popup2, hiện popup1
+        redirectTo('https://s.shopee.vn/5fm4ATWg7Y');
+    }
+
+    // Xử lý đóng popup1 (chuyển hướng tinhay)
+    function handleClosePopup1() {
+        if (isRedirecting) return;
+        redirectTo('https://tinhay.xyz/tik/paksjjs');
+    }
+
+    // Hàm hiển thị popup1 (xóa popup2, gắn sự kiện)
+    function showPopup1() {
+        clearTimer();
         popup2.style.display = 'none';
         popup1.style.display = 'flex';
 
-        // Gắn sự kiện đóng cho popup1
+        // Gắn sự kiện đóng cho popup1 (nút X và overlay)
         const closeHandler1 = function(e) {
             e.stopPropagation();
-            finishSequence();
+            handleClosePopup1();
         };
         const overlayHandler1 = function(e) {
             if (e.target === popup1) {
-                finishSequence();
+                handleClosePopup1();
             }
         };
-        // Xóa listener cũ nếu có
+        // Loại bỏ listener cũ để tránh trùng
         closeBtn1.removeEventListener('click', closeHandler1);
         popup1.removeEventListener('click', overlayHandler1);
         closeBtn1.addEventListener('click', closeHandler1);
         popup1.addEventListener('click', overlayHandler1);
-
-        // Đặt timer tự động kết thúc sau 5 giây (không chuyển popup tiếp theo)
-        timer = setTimeout(() => {
-            if (!isFinished && popup1.style.display === 'flex') {
-                finishSequence();
-            }
-        }, 5000);
     }
 
-    // Khởi động với popup2
-    function startWithPopup2() {
-        if (isFinished) return;
+    // Hàm khởi động chuỗi: hiện popup2, sau 2 giây chuyển sang popup1
+    function startSequence() {
         popup1.style.display = 'none';
         popup2.style.display = 'flex';
 
-        // Gắn sự kiện đóng cho popup2 (bấm nút X hoặc overlay → kết thúc chuỗi ngay)
+        // Gắn sự kiện đóng cho popup2 (chuyển hướng shopee)
         const closeHandler2 = function(e) {
             e.stopPropagation();
-            finishSequence();
+            handleClosePopup2();
         };
         const overlayHandler2 = function(e) {
             if (e.target === popup2) {
-                finishSequence();
+                handleClosePopup2();
             }
         };
         closeBtn2.removeEventListener('click', closeHandler2);
@@ -301,17 +307,30 @@ body{
         closeBtn2.addEventListener('click', closeHandler2);
         popup2.addEventListener('click', overlayHandler2);
 
-        // Timer 5 giây sau sẽ chuyển sang popup1
+        // Timer tự động chuyển sang popup1 sau 2 giây
         clearTimer();
-        timer = setTimeout(() => {
-            if (!isFinished && popup2.style.display === 'flex') {
+        transitionTimer = setTimeout(() => {
+            if (popup2.style.display === 'flex' && !isRedirecting) {
                 showPopup1();
             }
-        }, 5000);
+        }, 2000);
     }
 
-    // Bắt đầu
-    startWithPopup2();
+    // Khởi tạo
+    function init() {
+        if (getCookie('popup_seq_completed') === 'true') {
+            popup1.style.display = 'none';
+            popup2.style.display = 'none';
+            return;
+        }
+        startSequence();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();
 </script>
 
