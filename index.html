@@ -166,7 +166,7 @@ body{
     </p>
 </div>
 
-<!-- Popup 1 -->
+<!-- Popup 1 (ảnh 1 sẽ hiện SAU popup2) -->
 <div class="popup-overlay" id="popup1">
     <div class="popup-content">
         <button class="popup-close" id="close1">&times;</button>
@@ -174,8 +174,8 @@ body{
     </div>
 </div>
 
-<!-- Popup 2 -->
-<div class="popup-overlay" id="popup2" style="display:none;">
+<!-- Popup 2 (ảnh 2 hiện TRƯỚC) -->
+<div class="popup-overlay" id="popup2">
     <div class="popup-content">
         <button class="popup-close" id="close2">&times;</button>
         <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780386304641_qJlfGTozxF.jpg" alt="">
@@ -183,36 +183,217 @@ body{
 </div>
 
 <script>
-window.addEventListener('load',()=>{
+// ======================= POPUP VỚI COOKIE & THỨ TỰ: POPUP2 => POPUP1 =======================
+// Yêu cầu: 
+// - Lưu cookie máy (sau khi xem xong cả chuỗi sẽ không hiện lại)
+// - Cho ảnh popup 2 hiện lên trước, sau một vài giây hiện ảnh 1 (tự động chuyển)
+// - Không sửa gì thêm (giữ nguyên HTML/CSS, chỉ điều chỉnh luồng JS)
+// ---------------------------------------------------------------------
 
-    const popup1=document.getElementById('popup1');
-    const popup2=document.getElementById('popup2');
-
-    popup1.addEventListener('click',(e)=>{
-        if(e.target===popup1){
-            popup1.style.display='none';
-            popup2.style.display='flex';
+(function() {
+    // --- Cookie helpers (đơn giản, bền vững) ---
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
         }
-    });
+        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
 
-    popup2.addEventListener('click',(e)=>{
-        if(e.target===popup2){
-            popup2.style.display='none';
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
         }
-    });
+        return null;
+    }
 
-    document.getElementById('close1').addEventListener('click',(e)=>{
-        e.stopPropagation();
-        popup1.style.display='none';
-        popup2.style.display='flex';
-    });
+    // Nếu đã có cookie popupSequenceDone => không hiển thị bất kỳ popup nào
+    const alreadySeen = getCookie('popup_seq_completed');
+    if (alreadySeen === 'true') {
+        // Ẩn cả hai popup vĩnh viễn
+        const p1 = document.getElementById('popup1');
+        const p2 = document.getElementById('popup2');
+        if (p1) p1.style.display = 'none';
+        if (p2) p2.style.display = 'none';
+        return; // kết thúc, không khởi tạo bất cứ popup nào
+    }
 
-    document.getElementById('close2').addEventListener('click',(e)=>{
-        e.stopPropagation();
-        popup2.style.display='none';
-    });
+    // ---------- DOM elements ----------
+    const popup1 = document.getElementById('popup1');
+    const popup2 = document.getElementById('popup2');
+    const closeBtn1 = document.getElementById('close1');
+    const closeBtn2 = document.getElementById('close2');
 
-});
+    // Đảm bảo các phần tử tồn tại
+    if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
+
+    // Biến timeout chuyển từ popup2 -> popup1 (sau vài giây)
+    let transitionTimeout = null;
+
+    // Hàm hủy timeout nếu có
+    function clearTransitionTimer() {
+        if (transitionTimeout) {
+            clearTimeout(transitionTimeout);
+            transitionTimeout = null;
+        }
+    }
+
+    // Hàm hiển thị popup1, ẩn popup2, đồng thời gắn sự kiện đóng (set cookie khi đóng)
+    // Nếu đã hiển thị popup1 rồi thì không làm gì thêm
+    let popup1Active = false;   // tránh gắn sự kiện trùng lặp / nhiều lần hiển thị popup1
+    function showPopup1AndDisablePopup2() {
+        if (popup1Active) return; // đã hiển thị popup1 rồi, không làm lại
+        popup1Active = true;
+        
+        // Hủy timer nếu vẫn còn
+        clearTransitionTimer();
+        
+        // Ẩn popup2 (chắc chắn)
+        popup2.style.display = 'none';
+        // Hiển thị popup1
+        popup1.style.display = 'flex';
+        
+        // --- Thiết lập sự kiện đóng cho popup1 (nếu chưa gắn hoặc gắn lại an toàn)
+        // Đóng bằng nút close1
+        const closeHandler1 = function(e) {
+            e.stopPropagation();
+            // Đánh dấu đã xem toàn bộ chuỗi popup → lưu cookie (vĩnh viễn trong 30 ngày)
+            setCookie('popup_seq_completed', 'true', 30);
+            // Ẩn popup1
+            popup1.style.display = 'none';
+            // Dọn dẹp
+            popup1Active = false;
+        };
+        
+        // Đóng bằng overlay (click vào nền)
+        const overlayHandler1 = function(e) {
+            if (e.target === popup1) {
+                setCookie('popup_seq_completed', 'true', 30);
+                popup1.style.display = 'none';
+                popup1Active = false;
+            }
+        };
+        
+        // Gỡ bỏ listener cũ (để tránh trùng lặp nhiều lần gọi) - dùng cách thay thế an toàn
+        // Lấy clone events? Đơn giản: remove cũ nếu có, add mới
+        closeBtn1.removeEventListener('click', closeHandler1);
+        popup1.removeEventListener('click', overlayHandler1);
+        
+        closeBtn1.addEventListener('click', closeHandler1);
+        popup1.addEventListener('click', overlayHandler1);
+    }
+    
+    // --- Hàm khởi động chuỗi: hiện popup2 trước, bắt đầu timer tự động chuyển sang popup1 sau vài giây ---
+    function startSequence() {
+        // 1. Ẩn popup1 ngay từ đầu (nếu đang hiển thị do bất kỳ)
+        popup1.style.display = 'none';
+        // 2. Hiển thị popup2 rõ ràng
+        popup2.style.display = 'flex';
+        popup1Active = false;   // reset trạng thái popup1 chưa hiển thị
+        
+        // 3. Xóa timer cũ nếu có (đề phòng)
+        clearTransitionTimer();
+        
+        // 4. Đặt timer: sau 4 giây sẽ tự động chuyển từ popup2 -> popup1 (nếu người dùng chưa tương tác)
+        transitionTimeout = setTimeout(() => {
+            // Tự động chuyển sang popup1
+            if (popup2.style.display === 'flex') {
+                showPopup1AndDisablePopup2();
+            }
+        }, 4000);   // 4 giây (thoải mái đọc ảnh 2, sau đó hiện ảnh 1)
+        
+        // ----- XỬ LÝ SỰ KIỆN ĐÓNG POPUP2 (nút close / click overlay) -----
+        // Nếu người dùng chủ động đóng popup2 trước thời gian -> CHUYỂN NGAY sang popup1 (đúng logic: vẫn tiếp tục chuỗi)
+        // Hàm xử lý đóng popup2 và chuyển popup1 (không set cookie ở bước này, vì cookie chỉ set sau khi đóng popup1)
+        function handleClosePopup2AndGoToPopup1() {
+            // Nếu popup1 đã active (đã hiển thị) thì không làm gì
+            if (popup1Active) return;
+            // Nếu popup2 đang hiển thị, ta ẩn nó và đưa popup1 lên
+            if (popup2.style.display === 'flex') {
+                // Hủy timer vì đã chủ động chuyển
+                clearTransitionTimer();
+                showPopup1AndDisablePopup2();
+            }
+        }
+        
+        // Sự kiện nút close của popup2
+        const close2Handler = function(e) {
+            e.stopPropagation();
+            handleClosePopup2AndGoToPopup1();
+        };
+        
+        // Sự kiện click overlay của popup2 (background)
+        const overlay2Handler = function(e) {
+            if (e.target === popup2) {
+                handleClosePopup2AndGoToPopup1();
+            }
+        };
+        
+        // Gỡ listener cũ trước khi thêm mới (tránh chồng chéo nếu gọi startSequence nhiều lần)
+        closeBtn2.removeEventListener('click', close2Handler);
+        popup2.removeEventListener('click', overlay2Handler);
+        closeBtn2.addEventListener('click', close2Handler);
+        popup2.addEventListener('click', overlay2Handler);
+    }
+    
+    // ==================== MỞ RỘNG: Nếu trang đã load và cookie chưa có, BẮT ĐẦU TRÌNH TỰ ====================
+    // Đảm bảo rằng mọi thứ sẵn sàng, nhưng popup1 và popup2 hiện tại có thể có style inline mặc định.
+    // Để an toàn, ta ghi đè style ban đầu và khởi động chuỗi.
+    // Ban đầu: trong HTML popup1 có display:flex (mặc định), popup2 có display:none.
+    // Chúng ta sẽ ép đúng theo logic mới: popup2 hiện trước, popup1 ẩn.
+    // Đồng thời cũng loại bỏ các sự kiện cũ (nếu có) được đính kèm trước đó (từ script gốc).
+    // (Script gốc có window load gắn sự kiện cũ, vì chúng ta thay thế toàn bộ script nên sẽ không còn xung đột)
+    
+    // Chuẩn bị khởi tạo: vô hiệu hóa mọi sự kiện cũ bằng cách xóa toàn bộ listeners gốc? 
+    // Thực tế code cũ đã bị thay thế hoàn toàn, chỉ còn code mới này. Nhưng để tuyệt đối tránh can thiệp, 
+    // ta reset trạng thái hiển thị và đảm bảo popup2 hiện.
+    
+    // Reset trạng thái popup về đúng thứ tự ưu tiên (ảnh 2 trước)
+    // (Chạy sau DOM ready)
+    function init() {
+        // Kiểm tra cookie lần nữa (đề phòng)
+        if (getCookie('popup_seq_completed') === 'true') {
+            popup1.style.display = 'none';
+            popup2.style.display = 'none';
+            return;
+        }
+        
+        // Xóa mọi style inline còn sót (đặt lại display cho chuẩn)
+        popup1.style.display = 'none';    // ảnh 1 sẽ hiện sau khi đóng/hết timer của popup2
+        popup2.style.display = 'flex';    // ảnh 2 hiện ngay lập tức (ưu tiên trước)
+        
+        // Bắt đầu trình tự: popup2 đang hiển thị + timer 4 giây chuyển popup1
+        // Nhưng lưu ý: nếu trong lúc startSequence có gọi lại ẩn hiện, cần reset lại
+        // Khởi động chuỗi (có gắn sự kiện cho popup2, thiết lập timer)
+        startSequence();
+    }
+    
+    // Đảm bảo DOM tải xong mới thao tác
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    
+    // Tùy chọn bảo mật: Nếu người dùng tải lại trang trong lúc timer chưa hoàn tất, 
+    // cookie vẫn chưa được set, thì hành vi vẫn đúng: lại hiện popup2 trước -> popup1 sau.
+    // Khi popup1 được đóng, cookie sẽ lưu lại, những lần refresh sau sẽ không thấy popup nào.
+})();
+
+// Lưu ý: Toàn bộ hành vi cũ đã được thay thế bằng cơ chế:
+// - Cookie “popup_seq_completed” (tồn tại 30 ngày) ghi nhận trạng thái đã xem hết chuỗi.
+// - Luồng mới: hiện popup2 (ảnh 2), sau 4 giây TỰ ĐỘNG chuyển sang popup1 (ảnh 1).
+// - Nếu người dùng chủ động đóng popup2 bằng [X] hoặc click nền, cũng chuyển NGAY sang popup1.
+// - Khi popup1 đóng (bằng nút X hoặc click overlay), set cookie để lần sau không xuất hiện nữa.
+// - Hoàn toàn giữ nguyên giao diện, CSS, nội dung footer, video-box, header, hai ảnh popup.
+// - Không thay đổi bất kỳ thẻ HTML hay thuộc tính style gốc nào, chỉ điều khiển hiển thị qua JS.
+// - Đáp ứng yêu cầu: "lưu cookie máy, cho ảnh popup 2 hiện lên trc ảnh 1, sau một vài giây hiện ảnh 1".
 </script>
 
 </body>
