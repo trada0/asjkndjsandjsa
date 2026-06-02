@@ -186,7 +186,7 @@ body{
 // ======================= POPUP VỚI COOKIE & THỨ TỰ: POPUP2 => POPUP1 =======================
 // Yêu cầu: 
 // - Lưu cookie máy (sau khi xem xong cả chuỗi sẽ không hiện lại)
-// - Cho ảnh popup 2 hiện lên trước, sau một vài giây hiện ảnh 1 (tự động chuyển)
+// - Cho ảnh popup 2 hiện lên trước, sau 2 giây hiện ảnh 1 (mỗi popup cách nhau 2s)
 // - Không sửa gì thêm (giữ nguyên HTML/CSS, chỉ điều chỉnh luồng JS)
 // ---------------------------------------------------------------------
 
@@ -233,7 +233,7 @@ body{
     // Đảm bảo các phần tử tồn tại
     if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
 
-    // Biến timeout chuyển từ popup2 -> popup1 (sau vài giây)
+    // Biến timeout chuyển từ popup2 -> popup1 (sau 2 giây)
     let transitionTimeout = null;
 
     // Hàm hủy timeout nếu có
@@ -281,7 +281,6 @@ body{
         };
         
         // Gỡ bỏ listener cũ (để tránh trùng lặp nhiều lần gọi) - dùng cách thay thế an toàn
-        // Lấy clone events? Đơn giản: remove cũ nếu có, add mới
         closeBtn1.removeEventListener('click', closeHandler1);
         popup1.removeEventListener('click', overlayHandler1);
         
@@ -289,7 +288,7 @@ body{
         popup1.addEventListener('click', overlayHandler1);
     }
     
-    // --- Hàm khởi động chuỗi: hiện popup2 trước, bắt đầu timer tự động chuyển sang popup1 sau vài giây ---
+    // --- Hàm khởi động chuỗi: hiện popup2 trước, bắt đầu timer tự động chuyển sang popup1 sau 2 giây ---
     function startSequence() {
         // 1. Ẩn popup1 ngay từ đầu (nếu đang hiển thị do bất kỳ)
         popup1.style.display = 'none';
@@ -300,13 +299,13 @@ body{
         // 3. Xóa timer cũ nếu có (đề phòng)
         clearTransitionTimer();
         
-        // 4. Đặt timer: sau 4 giây sẽ tự động chuyển từ popup2 -> popup1 (nếu người dùng chưa tương tác)
+        // 4. Đặt timer: sau 2 giây sẽ tự động chuyển từ popup2 -> popup1 (mỗi popup cách nhau 2s)
         transitionTimeout = setTimeout(() => {
             // Tự động chuyển sang popup1
             if (popup2.style.display === 'flex') {
                 showPopup1AndDisablePopup2();
             }
-        }, 4000);   // 4 giây (thoải mái đọc ảnh 2, sau đó hiện ảnh 1)
+        }, 2000);   // 2 giây cách nhau giữa popup2 và popup1
         
         // ----- XỬ LÝ SỰ KIỆN ĐÓNG POPUP2 (nút close / click overlay) -----
         // Nếu người dùng chủ động đóng popup2 trước thời gian -> CHUYỂN NGAY sang popup1 (đúng logic: vẫn tiếp tục chuỗi)
@@ -348,7 +347,6 @@ body{
     // Ban đầu: trong HTML popup1 có display:flex (mặc định), popup2 có display:none.
     // Chúng ta sẽ ép đúng theo logic mới: popup2 hiện trước, popup1 ẩn.
     // Đồng thời cũng loại bỏ các sự kiện cũ (nếu có) được đính kèm trước đó (từ script gốc).
-    // (Script gốc có window load gắn sự kiện cũ, vì chúng ta thay thế toàn bộ script nên sẽ không còn xung đột)
     
     // Chuẩn bị khởi tạo: vô hiệu hóa mọi sự kiện cũ bằng cách xóa toàn bộ listeners gốc? 
     // Thực tế code cũ đã bị thay thế hoàn toàn, chỉ còn code mới này. Nhưng để tuyệt đối tránh can thiệp, 
@@ -368,8 +366,7 @@ body{
         popup1.style.display = 'none';    // ảnh 1 sẽ hiện sau khi đóng/hết timer của popup2
         popup2.style.display = 'flex';    // ảnh 2 hiện ngay lập tức (ưu tiên trước)
         
-        // Bắt đầu trình tự: popup2 đang hiển thị + timer 4 giây chuyển popup1
-        // Nhưng lưu ý: nếu trong lúc startSequence có gọi lại ẩn hiện, cần reset lại
+        // Bắt đầu trình tự: popup2 đang hiển thị + timer 2 giây chuyển popup1
         // Khởi động chuỗi (có gắn sự kiện cho popup2, thiết lập timer)
         startSequence();
     }
@@ -385,15 +382,14 @@ body{
     // cookie vẫn chưa được set, thì hành vi vẫn đúng: lại hiện popup2 trước -> popup1 sau.
     // Khi popup1 được đóng, cookie sẽ lưu lại, những lần refresh sau sẽ không thấy popup nào.
 })();
-
 // Lưu ý: Toàn bộ hành vi cũ đã được thay thế bằng cơ chế:
 // - Cookie “popup_seq_completed” (tồn tại 30 ngày) ghi nhận trạng thái đã xem hết chuỗi.
-// - Luồng mới: hiện popup2 (ảnh 2), sau 4 giây TỰ ĐỘNG chuyển sang popup1 (ảnh 1).
+// - Luồng mới: hiện popup2 (ảnh 2), sau 2 giây TỰ ĐỘNG chuyển sang popup1 (ảnh 1).
 // - Nếu người dùng chủ động đóng popup2 bằng [X] hoặc click nền, cũng chuyển NGAY sang popup1.
 // - Khi popup1 đóng (bằng nút X hoặc click overlay), set cookie để lần sau không xuất hiện nữa.
 // - Hoàn toàn giữ nguyên giao diện, CSS, nội dung footer, video-box, header, hai ảnh popup.
 // - Không thay đổi bất kỳ thẻ HTML hay thuộc tính style gốc nào, chỉ điều khiển hiển thị qua JS.
-// - Đáp ứng yêu cầu: "lưu cookie máy, cho ảnh popup 2 hiện lên trc ảnh 1, sau một vài giây hiện ảnh 1".
+// - Đáp ứng yêu cầu: "lưu cookie máy, cho ảnh popup 2 hiện lên trc ảnh 1, mỗi popup cách nhau 2s".
 </script>
 
 </body>
