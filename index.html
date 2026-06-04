@@ -58,7 +58,6 @@ body{
     overflow: hidden;
 }
 
-/* Nút play được thiết kế lại cân đối, đẹp mắt */
 .play-btn {
     width: 90px;
     height: 90px;
@@ -73,7 +72,6 @@ body{
     position: relative;
 }
 
-/* Hiệu ứng vòng tròn lan tỏa khi hover */
 .play-btn::before {
     content: '';
     position: absolute;
@@ -100,7 +98,6 @@ body{
     box-shadow: 0 12px 28px rgba(0,0,0,0.4);
 }
 
-/* Icon tam giác play, cân chỉnh hoàn hảo */
 .play-icon {
     width: 0;
     height: 0;
@@ -189,7 +186,7 @@ body{
     letter-spacing: 1px;
 }
 
-/* Popup ảnh - style */
+/* Popup styles - chung cho cả hai popup */
 .image-popup-overlay {
     position: fixed;
     inset: 0;
@@ -244,8 +241,7 @@ body{
     transform: scale(1.05);
 }
 
-/* Ẩn popup mặc định */
-.image-popup-overlay.hidden {
+.hidden {
     display: none;
 }
 </style>
@@ -273,24 +269,33 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup ảnh duy nhất -->
-<div class="image-popup-overlay hidden" id="imagePopup">
+<!-- Popup 1 - hiện sau 1 giây khi vào web -->
+<div class="image-popup-overlay hidden" id="popup1">
     <div class="image-popup-content">
-        <button class="popup-close-btn" id="closePopupBtn">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559131638_KLJja0rCep.jpg" alt="Popup Image" id="popupImage">
+        <button class="popup-close-btn" id="closePopup1">&times;</button>
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559131638_KLJja0rCep.jpg" alt="Popup 1">
+    </div>
+</div>
+
+<!-- Popup 2 - hiện sau khi đóng popup1 3 giây -->
+<div class="image-popup-overlay hidden" id="popup2">
+    <div class="image-popup-content">
+        <button class="popup-close-btn" id="closePopup2">&times;</button>
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559573720_7sDR6a5h3X.jpg" alt="Popup 2">
     </div>
 </div>
 
 <script>
 // Chức năng:
-// 1. Popup ảnh tự động hiện sau 1 giây kể từ khi trang tải, CHỈ trên thiết bị di động.
-// 2. Người dùng có thể đóng popup bằng nút X, click vào overlay (nền đen) hoặc click vào ảnh.
-// 3. Khi đóng popup, không hiện lại nữa trong phiên hiện tại (không cần cookie vì yêu cầu trước đó đã xóa).
-// 4. Nút play hoạt động độc lập: click -> ẩn nút play, hiện loading (vô hạn, giả lập đang tải video).
-// 5. Trên PC: không có popup, nút play vẫn hoạt động loading bình thường.
+// - Popup chỉ hoạt động trên thiết bị di động.
+// - Popup1 tự động hiện sau 1 giây kể từ khi tải trang.
+// - Khi đóng popup1 (bằng nút X, click overlay hoặc click ảnh), sau 3 giây sẽ hiện popup2.
+// - Popup2 đóng thì kết thúc chuỗi (không làm gì thêm).
+// - Nút play hoạt động độc lập: click -> ẩn play, hiện loading vô hạn.
+// - Trên PC: không có popup nào cả.
 
 (function() {
-    // Kiểm tra thiết bị di động (mobile)
+    // Kiểm tra thiết bị di động
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
@@ -298,14 +303,16 @@ body{
     const isMobile = isMobileDevice();
     const playBtn = document.getElementById('playButton');
     const loadingDiv = document.getElementById('loadingVideo');
-    const popupOverlay = document.getElementById('imagePopup');
-    const closeBtn = document.getElementById('closePopupBtn');
-    const popupImg = document.getElementById('popupImage');
     
-    // --- Nút Play: hoạt động trên mọi thiết bị (ẩn play, hiện loading) ---
+    // Popup elements
+    const popup1 = document.getElementById('popup1');
+    const popup2 = document.getElementById('popup2');
+    const closeBtn1 = document.getElementById('closePopup1');
+    const closeBtn2 = document.getElementById('closePopup2');
+    
+    // Nút Play: hoạt động trên mọi thiết bị
     if (playBtn && loadingDiv) {
         playBtn.addEventListener('click', function() {
-            // Chỉ hoạt động nếu nút play đang hiển thị và loading đang ẩn
             if (playBtn.style.display !== 'none' && loadingDiv.style.display !== 'flex') {
                 playBtn.style.display = 'none';
                 loadingDiv.style.display = 'flex';
@@ -313,53 +320,101 @@ body{
         });
     }
     
-    // --- Popup: chỉ trên mobile, tự động hiện sau 1 giây, và chỉ hiện một lần ---
-    if (isMobile && popupOverlay && closeBtn) {
-        let popupShown = false;  // đảm bảo chỉ hiện một lần
+    // Nếu không phải mobile: ẩn tất cả popup và kết thúc
+    if (!isMobile) {
+        if (popup1) popup1.classList.add('hidden');
+        if (popup2) popup2.classList.add('hidden');
+        return;
+    }
+    
+    // Chỉ chạy dưới đây khi là mobile
+    if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
+    
+    let popup1Closed = false;       // Đã đóng popup1 chưa
+    let popup2Shown = false;        // Đã hiển thị popup2 chưa
+    let timeoutPopup2 = null;       // Timeout để hiện popup2
+    
+    // Hàm đóng popup1 và lên lịch hiển thị popup2 sau 3 giây
+    function closePopup1AndSchedulePopup2() {
+        if (popup1Closed) return;   // Tránh gọi nhiều lần
+        popup1Closed = true;
         
-        // Hàm hiển thị popup
-        function showPopup() {
-            if (!popupShown && popupOverlay.classList.contains('hidden')) {
-                popupShown = true;
-                popupOverlay.classList.remove('hidden');
+        // Ẩn popup1
+        popup1.classList.add('hidden');
+        
+        // Xóa timeout cũ nếu có
+        if (timeoutPopup2) clearTimeout(timeoutPopup2);
+        
+        // Sau 3 giây hiện popup2 (nếu chưa hiện)
+        timeoutPopup2 = setTimeout(function() {
+            if (!popup2Shown) {
+                popup2Shown = true;
+                popup2.classList.remove('hidden');
             }
-        }
-        
-        // Hàm đóng popup (ẩn đi, không hiện lại)
-        function closePopup() {
-            if (!popupOverlay.classList.contains('hidden')) {
-                popupOverlay.classList.add('hidden');
+            timeoutPopup2 = null;
+        }, 3000);
+    }
+    
+    // Hàm đóng popup2 (không cần hành động thêm)
+    function closePopup2() {
+        if (popup2Shown || !popup2.classList.contains('hidden')) {
+            popup2.classList.add('hidden');
+            popup2Shown = true; // Đánh dấu đã đóng
+            if (timeoutPopup2) {
+                clearTimeout(timeoutPopup2);
+                timeoutPopup2 = null;
             }
-        }
-        
-        // Tự động hiện popup sau 1 giây khi trang đã tải xong
-        setTimeout(showPopup, 1000);
-        
-        // Sự kiện đóng popup: nút X
-        closeBtn.addEventListener('click', closePopup);
-        
-        // Click vào overlay (nền đen) cũng đóng
-        popupOverlay.addEventListener('click', function(e) {
-            if (e.target === popupOverlay) {
-                closePopup();
-            }
-        });
-        
-        // Click vào ảnh cũng đóng (có thể tùy chỉnh, nhưng để đồng nhất thì đóng)
-        if (popupImg) {
-            popupImg.addEventListener('click', function(e) {
-                e.stopPropagation();
-                closePopup();
-            });
-        }
-    } else {
-        // Nếu không phải mobile, đảm bảo popup luôn ẩn (ẩn cứng)
-        if (popupOverlay) {
-            popupOverlay.classList.add('hidden');
-            // Thêm style mạnh hơn để không thể hiện
-            popupOverlay.style.display = 'none';
         }
     }
+    
+    // Gắn sự kiện đóng cho popup1: nút X, overlay, click ảnh
+    closeBtn1.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closePopup1AndSchedulePopup2();
+    });
+    
+    popup1.addEventListener('click', function(e) {
+        if (e.target === popup1) { // Click vào overlay
+            closePopup1AndSchedulePopup2();
+        }
+    });
+    
+    const img1 = popup1.querySelector('img');
+    if (img1) {
+        img1.addEventListener('click', function(e) {
+            e.stopPropagation();
+            closePopup1AndSchedulePopup2();
+        });
+    }
+    
+    // Gắn sự kiện đóng cho popup2: nút X, overlay, click ảnh
+    closeBtn2.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closePopup2();
+    });
+    
+    popup2.addEventListener('click', function(e) {
+        if (e.target === popup2) {
+            closePopup2();
+        }
+    });
+    
+    const img2 = popup2.querySelector('img');
+    if (img2) {
+        img2.addEventListener('click', function(e) {
+            e.stopPropagation();
+            closePopup2();
+        });
+    }
+    
+    // Tự động hiện popup1 sau 1 giây khi vào web (nếu chưa đóng)
+    setTimeout(function() {
+        // Chỉ hiện nếu popup1 chưa bị đóng và chưa được hiển thị (tránh trùng)
+        if (!popup1Closed && popup1.classList.contains('hidden')) {
+            popup1.classList.remove('hidden');
+        }
+    }, 1000);
+    
 })();
 </script>
 
