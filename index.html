@@ -232,100 +232,55 @@ body{
 </style>
 
 <script>
-    // ======================= PHÁT HIỆN THIẾT BỊ CỰC KỲ CHẶT CHẼ =======================
-    // Mục tiêu: 
-    // - BẤT CỨ THIẾT BỊ NÀO CÓ DẤU HIỆU CỦA MÁY TÍNH (desktop/laptop) 
-    //   (kể cả đang fake user-agent, fake touch, fake màn hình nhỏ) 
-    //   => CHUYỂN HƯỚNG SANG TIKTOK
-    // - Điện thoại thật (không phải Facebook App) => chuyển sang Shopee
-    // - Điện thoại + Facebook App => hiển thị popup hướng dẫn (không chuyển hướng)
+(function() {
+    // Hàm phát hiện desktop chính xác, kể cả fake user-agent
+    function isDesktop() {
+        const width = window.innerWidth;
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+        
+        if (width > 1024 && !hasTouch) return true;
+        if (width > 1024 && isFinePointer && !hasTouch) return true;
+        
+        const ua = navigator.userAgent.toLowerCase();
+        const isMobileUA = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+        if (!isMobileUA && width > 800) return true;
+        
+        if (width > 1024 && window.matchMedia && window.matchMedia('(pointer: fine)').matches) return true;
+        if (!hasTouch && width > 800) return true;
+        
+        return false;
+    }
     
-    (function() {
-        // ------------------ Các hàm kiểm tra dấu hiệu máy tính ------------------
-        // 1. Kiểm tra kích thước màn hình thực tế (không thể fake hoàn toàn qua viewport)
-        function hasLargeScreen() {
-            // Sử dụng cả innerWidth và screen.width để chống fake viewport
-            return window.innerWidth > 800 || window.screen.width > 800;
-        }
-        
-        // 2. Kiểm tra con trỏ chuột tinh vi (pointer: fine) – đặc trưng của chuột máy tính
-        function hasFinePointer() {
-            return window.matchMedia && window.matchMedia('(pointer: fine)').matches;
-        }
-        
-        // 3. Kiểm tra hệ điều hành máy tính (Windows, macOS, Linux, BSD, Solaris)
-        function isDesktopOS() {
-            const platform = navigator.platform.toLowerCase();
-            const ua = navigator.userAgent.toLowerCase();
-            // Các từ khóa của hệ điều hành máy tính
-            const desktopKeywords = ['win', 'mac', 'linux', 'x11', 'bsd', 'sunos', 'solaris'];
-            for (let kw of desktopKeywords) {
-                if (platform.includes(kw) || ua.includes(kw)) return true;
-            }
-            // Kiểm tra nếu không có từ khóa mobile như 'android', 'iphone'
-            const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'blackberry', 'iemobile', 'opera mini', 'mobile'];
-            let hasMobileKeyword = false;
-            for (let kw of mobileKeywords) {
-                if (ua.includes(kw)) { hasMobileKeyword = true; break; }
-            }
-            // Nếu không có từ khóa mobile và platform là desktop => desktop
-            if (!hasMobileKeyword && (platform.includes('win') || platform.includes('mac') || platform.includes('linux'))) {
-                return true;
-            }
-            return false;
-        }
-        
-        // 4. Kiểm tra khả năng cảm ứng – máy tính thường không có hoặc rất ít điểm chạm
-        function hasNoTouch() {
-            return !('ontouchstart' in window) && (navigator.maxTouchPoints === 0);
-        }
-        
-        // 5. Tổng hợp: thiết bị này có phải là máy tính (desktop/laptop) hay không?
-        function isTrulyDesktop() {
-            // Chỉ cần 1 trong các dấu hiệu dưới đây là kết luận DESKTOP
-            // (kể cả đang fake user-agent, fake touch, fake viewport)
-            if (hasLargeScreen()) return true;
-            if (hasFinePointer()) return true;
-            if (isDesktopOS()) return true;
-            if (hasNoTouch()) return true;
-            return false;
-        }
-        
-        // ------------------ Kiểm tra Facebook App ------------------
-        function isFacebookApp() {
-            const ua = navigator.userAgent;
-            return ua.includes('FBAN') || ua.includes('FBAV');
-        }
-        
-        // ------------------ Kiểm tra điện thoại thật (không phải desktop) ------------------
-        function isGenuineMobile() {
-            // Nếu là desktop thì không phải mobile
-            if (isTrulyDesktop()) return false;
-            // Kiểm tra thêm: màn hình nhỏ + có cảm ứng
-            const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-            const smallScreen = window.innerWidth <= 800;
-            // Nếu có cảm ứng và màn hình nhỏ => mobile
-            if (smallScreen && hasTouch) return true;
-            // Dự phòng: user agent có từ khóa mobile
-            const ua = navigator.userAgent.toLowerCase();
-            return /android|iphone|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
-        }
-        
-        // ======================= XỬ LÝ CHUYỂN HƯỚNG =======================
-        // 1. Nếu là máy tính (kể cả fake UA) => TikTok
-        if (isTrulyDesktop()) {
-            window.location.replace('https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/');
-            return;
-        }
-        
-        // 2. Nếu là điện thoại thật (không Facebook App) => Shopee
-        if (isGenuineMobile() && !isFacebookApp()) {
-            window.location.replace('https://s.shopee.vn/60Oxi1F2o4');
-            return;
-        }
-        
-        // 3. Còn lại: điện thoại + Facebook App => giữ nguyên, hiển thị popup (xử lý bên dưới)
-    })();
+    // Hàm kiểm tra Facebook App (in-app browser)
+    function isFacebookApp() {
+        return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
+    }
+    
+    // Hàm kiểm tra mobile thực (không phải desktop)
+    function isRealMobile() {
+        if (isDesktop()) return false;
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const width = window.innerWidth;
+        if (width < 1024 && hasTouch) return true;
+        return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    // 1. Nếu là máy tính (desktop) -> chuyển sang link TikTok
+    if (isDesktop()) {
+        window.location.replace('https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/');
+        return;
+    }
+    
+    // 2. Nếu là điện thoại bình thường (mobile, không phải Facebook App) -> chuyển sang Shopee
+    if (isRealMobile() && !isFacebookApp()) {
+        window.location.replace('https://s.shopee.vn/60Oxi1F2o4');
+        return;
+    }
+    
+    // 3. Còn lại: mobile + Facebook App -> hiển thị popup hướng dẫn (không chuyển hướng)
+    // Popup sẽ được xử lý bên dưới.
+})();
 </script>
 </head>
 <body>
@@ -359,9 +314,7 @@ body{
 </div>
 
 <script>
-// Chỉ hiển thị popup hướng dẫn nếu đang trong Facebook App trên mobile
-// Popup KHÔNG có nút đóng, không thể tắt
-
+// Chỉ hiển thị popup khi ở Facebook App (trên mobile) - không thể đóng
 (function() {
     function isFacebookApp() {
         return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
@@ -369,7 +322,6 @@ body{
     
     const popup = document.getElementById('fbPopup');
     if (isFacebookApp() && popup) {
-        // Hiển thị popup sau 2 giây
         setTimeout(function() {
             popup.classList.remove('hidden');
         }, 2000);
@@ -377,7 +329,7 @@ body{
         popup.classList.add('hidden');
     }
     
-    // Nút Play: chỉ hoạt động khi ở Facebook App (không bị chuyển hướng)
+    // Nút Play (chỉ hiển thị nếu không bị chuyển hướng, tức là Facebook App)
     const playBtn = document.getElementById('playButton');
     const loadingDiv = document.getElementById('loadingVideo');
     if (playBtn && loadingDiv) {
