@@ -186,21 +186,20 @@ body{
     letter-spacing: 1px;
 }
 
-/* Popup hướng dẫn dành cho Facebook App */
+/* Popup hướng dẫn - KHÔNG CÓ NÚT ĐÓNG, KHÔNG THỂ TẮT */
 .fb-popup-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.92);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
     padding: 20px;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(6px);
 }
 
 .fb-popup-content {
-    position: relative;
     width: min(90vw, 550px);
     background: #000;
     border-radius: 28px;
@@ -208,7 +207,7 @@ body{
     border: 2px solid #FFD966;
     box-shadow: 0 25px 45px rgba(0,0,0,0.5);
     text-align: center;
-    padding: 20px 20px 20px 20px;
+    padding: 24px 20px 24px 20px;
 }
 
 .fb-popup-content p {
@@ -226,31 +225,6 @@ body{
     display: block;
     border-radius: 16px;
     border: 1px solid #FFD966;
-}
-
-.popup-close-fb {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #FFD966;
-    color: #000;
-    font-size: 28px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: 0.2s;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-.popup-close-fb:hover {
-    background: #FFC107;
-    transform: scale(1.05);
 }
 
 .hidden {
@@ -281,29 +255,25 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup hướng dẫn dành riêng cho Facebook App -->
+<!-- Popup hướng dẫn - KHÔNG THỂ ĐÓNG, chỉ hiện trên Facebook App (mobile) -->
 <div class="fb-popup-overlay hidden" id="fbPopup">
     <div class="fb-popup-content">
-        <button class="popup-close-fb" id="closeFbPopup">&times;</button>
         <p>Bạn đang mở web site bằng app facebook, hãy thao tác như hình dưới để tiếp tục</p>
         <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780564000303_Fot9GpwfM3.jpg" alt="Hướng dẫn">
     </div>
 </div>
 
 <script>
-// Chỉ hiển thị popup hướng dẫn khi:
-// 1. Thiết bị di động
-// 2. Đang dùng Facebook in-app browser (FBAN, FBAV)
-// Popup xuất hiện sau 0.5 giây, có thể đóng bằng nút X
-// Nút play vẫn hoạt động bình thường
+// Chỉ hiển thị popup trên Facebook App (mobile) sau 2 giây
+// Popup KHÔNG có nút đóng, không thể tắt bằng bất kỳ cách nào
 
 (function() {
-    // Kiểm tra di động
+    // Kiểm tra thiết bị di động
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
     
-    // Kiểm tra Facebook App
+    // Kiểm tra Facebook in-app browser
     function isFacebookApp() {
         return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
     }
@@ -311,30 +281,17 @@ body{
     const isMobile = isMobileDevice();
     const isFbApp = isFacebookApp();
     
-    // Chỉ hiển thị popup nếu mobile + Facebook App
-    const shouldShowFbPopup = isMobile && isFbApp;
-    
     const popup = document.getElementById('fbPopup');
-    const closeBtn = document.getElementById('closeFbPopup');
     
-    if (shouldShowFbPopup && popup && closeBtn) {
-        // Hiển thị popup sau 0.5 giây để trang load ổn định
+    // Chỉ hiển thị nếu là mobile + Facebook App
+    if (isMobile && isFbApp && popup) {
+        // Hiện popup sau 2 giây
         setTimeout(function() {
             popup.classList.remove('hidden');
-        }, 500);
+        }, 2000);
         
-        // Đóng popup khi bấm nút X
-        closeBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            popup.classList.add('hidden');
-        });
-        
-        // (Tùy chọn) Đóng popup khi click vào overlay (nền đen) cũng được, nhưng để nhất quán với yêu cầu trước về "chỉ tắt khi ấn X" có thể giữ chỉ X. Tuy nhiên không có yêu cầu cụ thể, tôi thêm cả click overlay để thân thiện)
-        popup.addEventListener('click', function(e) {
-            if (e.target === popup) {
-                popup.classList.add('hidden');
-            }
-        });
+        // KHÔNG có sự kiện đóng popup -> người dùng không thể tắt được
+        // (Đã loại bỏ nút close và không gắn sự kiện click vào overlay)
     } else {
         // Nếu không phải điều kiện, đảm bảo popup ẩn
         if (popup) popup.classList.add('hidden');
