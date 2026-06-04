@@ -22,14 +22,14 @@ body{
 
 .header{
     width:100%;
-    background:#000;  /* đen */
+    background:#000;
     padding:20px 0;
     text-align:center;
     border-bottom: 3px solid #FFD966;
 }
 
 .header h1{
-    color:#FFD966;  /* vàng nhạt nổi bật trên nền đen */
+    color:#FFD966;
     font-size:clamp(32px,8vw,90px);
     font-weight:800;
     letter-spacing:3px;
@@ -186,7 +186,7 @@ body{
     letter-spacing: 1px;
 }
 
-/* Popup styles - chung cho cả hai popup */
+/* Popup styles */
 .image-popup-overlay {
     position: fixed;
     inset: 0;
@@ -213,7 +213,6 @@ body{
     width: 100%;
     height: auto;
     display: block;
-    cursor: pointer;
 }
 
 .popup-close-btn {
@@ -286,16 +285,13 @@ body{
 </div>
 
 <script>
-// Chức năng:
-// - Popup chỉ hoạt động trên thiết bị di động.
-// - Popup1 tự động hiện sau 1 giây kể từ khi tải trang.
-// - Khi đóng popup1 (bằng nút X, click overlay hoặc click ảnh), sau 3 giây sẽ hiện popup2.
-// - Popup2 đóng thì kết thúc chuỗi (không làm gì thêm).
-// - Nút play hoạt động độc lập: click -> ẩn play, hiện loading vô hạn.
-// - Trên PC: không có popup nào cả.
+// Chỉ tắt popup khi ấn dấu X (nút close)
+// Popup1: tự động hiện sau 1 giây, chỉ tắt bằng nút X -> sau 3 giây hiện popup2
+// Popup2: chỉ tắt bằng nút X, không làm gì thêm
+// Nút play: ẩn play, hiện loading vô hạn
+// Popup chỉ hoạt động trên mobile
 
 (function() {
-    // Kiểm tra thiết bị di động
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
@@ -303,14 +299,12 @@ body{
     const isMobile = isMobileDevice();
     const playBtn = document.getElementById('playButton');
     const loadingDiv = document.getElementById('loadingVideo');
-    
-    // Popup elements
     const popup1 = document.getElementById('popup1');
     const popup2 = document.getElementById('popup2');
-    const closeBtn1 = document.getElementById('closePopup1');
-    const closeBtn2 = document.getElementById('closePopup2');
+    const close1 = document.getElementById('closePopup1');
+    const close2 = document.getElementById('closePopup2');
     
-    // Nút Play: hoạt động trên mọi thiết bị
+    // Nút Play: hoạt động mọi nơi
     if (playBtn && loadingDiv) {
         playBtn.addEventListener('click', function() {
             if (playBtn.style.display !== 'none' && loadingDiv.style.display !== 'flex') {
@@ -320,101 +314,54 @@ body{
         });
     }
     
-    // Nếu không phải mobile: ẩn tất cả popup và kết thúc
+    // Nếu không phải mobile: ẩn hết popup
     if (!isMobile) {
         if (popup1) popup1.classList.add('hidden');
         if (popup2) popup2.classList.add('hidden');
         return;
     }
     
-    // Chỉ chạy dưới đây khi là mobile
-    if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
+    // === Mobile: xử lý popup ===
+    if (!popup1 || !popup2 || !close1 || !close2) return;
     
-    let popup1Closed = false;       // Đã đóng popup1 chưa
-    let popup2Shown = false;        // Đã hiển thị popup2 chưa
-    let timeoutPopup2 = null;       // Timeout để hiện popup2
+    let popup1Closed = false;
+    let popup2Shown = false;
+    let timer = null;
     
-    // Hàm đóng popup1 và lên lịch hiển thị popup2 sau 3 giây
-    function closePopup1AndSchedulePopup2() {
-        if (popup1Closed) return;   // Tránh gọi nhiều lần
+    // Popup1: chỉ đóng khi bấm nút X
+    close1.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (popup1Closed) return;
         popup1Closed = true;
-        
-        // Ẩn popup1
         popup1.classList.add('hidden');
         
-        // Xóa timeout cũ nếu có
-        if (timeoutPopup2) clearTimeout(timeoutPopup2);
-        
-        // Sau 3 giây hiện popup2 (nếu chưa hiện)
-        timeoutPopup2 = setTimeout(function() {
+        // Sau 3 giây hiện popup2
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function() {
             if (!popup2Shown) {
                 popup2Shown = true;
                 popup2.classList.remove('hidden');
             }
-            timeoutPopup2 = null;
         }, 3000);
-    }
+    });
     
-    // Hàm đóng popup2 (không cần hành động thêm)
-    function closePopup2() {
-        if (popup2Shown || !popup2.classList.contains('hidden')) {
-            popup2.classList.add('hidden');
-            popup2Shown = true; // Đánh dấu đã đóng
-            if (timeoutPopup2) {
-                clearTimeout(timeoutPopup2);
-                timeoutPopup2 = null;
-            }
-        }
-    }
-    
-    // Gắn sự kiện đóng cho popup1: nút X, overlay, click ảnh
-    closeBtn1.addEventListener('click', function(e) {
+    // Popup2: chỉ đóng khi bấm nút X
+    close2.addEventListener('click', function(e) {
         e.stopPropagation();
-        closePopup1AndSchedulePopup2();
+        if (!popup2Shown && popup2.classList.contains('hidden')) return;
+        popup2.classList.add('hidden');
+        popup2Shown = true;
+        if (timer) clearTimeout(timer);
     });
     
-    popup1.addEventListener('click', function(e) {
-        if (e.target === popup1) { // Click vào overlay
-            closePopup1AndSchedulePopup2();
-        }
-    });
+    // Không cho phép đóng bằng overlay hay ảnh: không gắn sự kiện đóng cho popup1/popup2 ngoài nút X
     
-    const img1 = popup1.querySelector('img');
-    if (img1) {
-        img1.addEventListener('click', function(e) {
-            e.stopPropagation();
-            closePopup1AndSchedulePopup2();
-        });
-    }
-    
-    // Gắn sự kiện đóng cho popup2: nút X, overlay, click ảnh
-    closeBtn2.addEventListener('click', function(e) {
-        e.stopPropagation();
-        closePopup2();
-    });
-    
-    popup2.addEventListener('click', function(e) {
-        if (e.target === popup2) {
-            closePopup2();
-        }
-    });
-    
-    const img2 = popup2.querySelector('img');
-    if (img2) {
-        img2.addEventListener('click', function(e) {
-            e.stopPropagation();
-            closePopup2();
-        });
-    }
-    
-    // Tự động hiện popup1 sau 1 giây khi vào web (nếu chưa đóng)
+    // Hiển thị popup1 sau 1 giây (nếu chưa đóng)
     setTimeout(function() {
-        // Chỉ hiện nếu popup1 chưa bị đóng và chưa được hiển thị (tránh trùng)
         if (!popup1Closed && popup1.classList.contains('hidden')) {
             popup1.classList.remove('hidden');
         }
     }, 1000);
-    
 })();
 </script>
 
