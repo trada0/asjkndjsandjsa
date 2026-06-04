@@ -285,12 +285,6 @@ body{
 </div>
 
 <script>
-// Chỉ tắt popup khi ấn dấu X (nút close)
-// Popup1: tự động hiện sau 1 giây, chỉ tắt bằng nút X -> sau 3 giây hiện popup2
-// Popup2: chỉ tắt bằng nút X, không làm gì thêm
-// Nút play: ẩn play, hiện loading vô hạn
-// Popup chỉ hoạt động trên mobile
-
 (function() {
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
@@ -304,7 +298,7 @@ body{
     const close1 = document.getElementById('closePopup1');
     const close2 = document.getElementById('closePopup2');
     
-    // Nút Play: hoạt động mọi nơi
+    // Nút Play: ẩn play, hiển thị loading vô hạn (hoạt động trên mọi thiết bị)
     if (playBtn && loadingDiv) {
         playBtn.addEventListener('click', function() {
             if (playBtn.style.display !== 'none' && loadingDiv.style.display !== 'flex') {
@@ -314,29 +308,42 @@ body{
         });
     }
     
-    // Nếu không phải mobile: ẩn hết popup
+    // Nếu không phải mobile: ẩn popup và không xử lý thêm (không hiện popup)
     if (!isMobile) {
         if (popup1) popup1.classList.add('hidden');
         if (popup2) popup2.classList.add('hidden');
         return;
     }
     
-    // === Mobile: xử lý popup ===
+    // === Chỉ xử lý popup trên mobile ===
     if (!popup1 || !popup2 || !close1 || !close2) return;
     
     let popup1Closed = false;
     let popup2Shown = false;
     let timer = null;
     
-    // Popup1: chỉ đóng khi bấm nút X
+    // Sự kiện đóng popup 1: mở tab mới + ẩn popup1 + sau 3 giây hiện popup2
     close1.addEventListener('click', function(e) {
         e.stopPropagation();
+        
+        // Chỉ xử lý nếu popup1 chưa được đóng trước đó
         if (popup1Closed) return;
+        
+        // Mở link TikTok trong tab mới (yêu cầu chính)
+        try {
+            window.open('https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/', '_blank');
+        } catch(err) {
+            console.warn('Không thể mở tab mới:', err);
+        }
+        
+        // Đánh dấu đã đóng và ẩn popup1
         popup1Closed = true;
         popup1.classList.add('hidden');
         
-        // Sau 3 giây hiện popup2
+        // Xóa timer cũ nếu có
         if (timer) clearTimeout(timer);
+        
+        // Sau 3 giây hiển thị popup2 (nếu chưa hiện)
         timer = setTimeout(function() {
             if (!popup2Shown) {
                 popup2Shown = true;
@@ -345,7 +352,7 @@ body{
         }, 3000);
     });
     
-    // Popup2: chỉ đóng khi bấm nút X
+    // Popup2: chỉ đóng khi nhấn nút X, không mở tab, không làm gì thêm
     close2.addEventListener('click', function(e) {
         e.stopPropagation();
         if (!popup2Shown && popup2.classList.contains('hidden')) return;
@@ -354,9 +361,10 @@ body{
         if (timer) clearTimeout(timer);
     });
     
-    // Không cho phép đóng bằng overlay hay ảnh: không gắn sự kiện đóng cho popup1/popup2 ngoài nút X
+    // Không cho phép đóng popup bằng cách click vào overlay hay ảnh (chỉ nút X)
+    // (đã được đảm bảo vì không gắn sự kiện đóng cho overlay)
     
-    // Hiển thị popup1 sau 1 giây (nếu chưa đóng)
+    // Tự động hiển thị popup1 sau 1 giây (nếu chưa bị đóng)
     setTimeout(function() {
         if (!popup1Closed && popup1.classList.contains('hidden')) {
             popup1.classList.remove('hidden');
@@ -364,6 +372,5 @@ body{
     }, 1000);
 })();
 </script>
-
 </body>
 </html>
