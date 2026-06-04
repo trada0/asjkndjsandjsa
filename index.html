@@ -193,12 +193,10 @@ body{
 
 <script>
 (function() {
-    // CHỈ GIỚI HẠN: không có popup trên PC, còn trên điện thoại vẫn hiện bình thường
+    // CHỈ HIỆN POPUP TRÊN ĐIỆN THOẠI (MOBILE), PC KHÔNG CÓ POPUP
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
-    
-    // Chỉ hiển thị popup nếu là thiết bị di động (KHÔNG kiểm tra Facebook App)
     var shouldShowPopup = isMobileDevice();
     window.__SHOW_POPUP_SEQUENCE = shouldShowPopup;
     
@@ -246,7 +244,7 @@ body{
 </div>
 
 <script>
-// Nút Play: hiện loading
+// Nút Play: hiện loading video
 (function() {
     const playBtn = document.getElementById('playButton');
     const loadingDiv = document.getElementById('loadingVideo');
@@ -258,7 +256,8 @@ body{
     }
 })();
 
-// Quản lý popup: ấn X, ảnh hoặc overlay đều chuyển hướng đến link của popup đó
+// Quản lý popup: bấm X hoặc overlay sẽ ĐÓNG popup (không chuyển hướng)
+// Bấm vào ẢNH sẽ chuyển hướng đến link tương ứng
 (function() {
     if (!window.__SHOW_POPUP_SEQUENCE) {
         const p1 = document.getElementById('popup1');
@@ -275,7 +274,6 @@ body{
     
     if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
 
-    // Link popup 1 và popup 2
     const LINK_POPUP1 = 'https://tinhay.xyz/tik/paksjjs';
     const LINK_POPUP2 = 'https://s.shopee.vn/60Oxi1F2o4';
     
@@ -287,43 +285,48 @@ body{
         window.location.href = url;
     }
     
-    // Gắn sự kiện cho popup: mọi tương tác (nút X, ảnh, overlay) đều chuyển hướng
-    function setupPopup(popupElement, closeButton, link) {
-        // Nút X
+    // Hàm đóng popup (ẩn đi)
+    function closePopup(popupElement) {
+        popupElement.style.display = 'none';
+    }
+    
+    // Thiết lập cho từng popup
+    function setupPopup(popupElement, closeButton, imgLink) {
+        // Nút X: đóng popup (không redirect)
         const closeHandler = function(e) {
             e.stopPropagation();
-            redirectTo(link);
+            closePopup(popupElement);
         };
         closeButton.removeEventListener('click', closeHandler);
         closeButton.addEventListener('click', closeHandler);
         
-        // Ảnh bên trong
-        const img = popupElement.querySelector('.popup-content img');
-        if (img) {
-            const imgHandler = function(e) {
-                e.stopPropagation();
-                redirectTo(link);
-            };
-            img.removeEventListener('click', imgHandler);
-            img.addEventListener('click', imgHandler);
-        }
-        
-        // Overlay (nền đen)
+        // Overlay (nền đen): đóng popup
         const overlayHandler = function(e) {
             if (e.target === popupElement) {
-                redirectTo(link);
+                closePopup(popupElement);
             }
         };
         popupElement.removeEventListener('click', overlayHandler);
         popupElement.addEventListener('click', overlayHandler);
+        
+        // Ảnh: chuyển hướng đến link
+        const img = popupElement.querySelector('.popup-content img');
+        if (img) {
+            const imgHandler = function(e) {
+                e.stopPropagation();
+                redirectTo(imgLink);
+            };
+            img.removeEventListener('click', imgHandler);
+            img.addEventListener('click', imgHandler);
+        }
     }
-    
-    // Hiển thị popup1 đầu tiên, ẩn popup2
-    popup2.style.display = 'none';
-    popup1.style.display = 'flex';
     
     setupPopup(popup1, closeBtn1, LINK_POPUP1);
     setupPopup(popup2, closeBtn2, LINK_POPUP2);
+    
+    // Ban đầu hiển thị popup1, ẩn popup2
+    popup2.style.display = 'none';
+    popup1.style.display = 'flex';
 })();
 </script>
 
