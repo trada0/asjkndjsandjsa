@@ -53,6 +53,7 @@ body{
     display:flex;
     align-items:center;
     justify-content:center;
+    position:relative;
 }
 
 .play-btn{
@@ -63,6 +64,12 @@ body{
     border-radius:50%;
     background:#fff;
     position:relative;
+    cursor:pointer;
+    transition: transform 0.1s ease;
+}
+
+.play-btn:hover{
+    transform: scale(1.02);
 }
 
 .play-btn::before{
@@ -76,23 +83,61 @@ body{
     border-left:28px solid #000;
 }
 
+/* Loading video style */
+.loading-video{
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    color: white;
+    font-size: clamp(16px, 4vw, 24px);
+    font-weight: 500;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    background: #000;
+}
+
+.spinner{
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255,255,255,0.2);
+    border-top: 5px solid #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin{
+    0%{ transform: rotate(0deg); }
+    100%{ transform: rotate(360deg); }
+}
+
 .footer{
     text-align:center;
-    padding:40px 20px;
+    padding: 25px 20px;
     color:#000;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    margin-top: 10px;
 }
 
 .footer p{
-    font-size:clamp(18px,3vw,28px);
-    font-weight:700;
-    line-height:1.15;
-    margin-bottom:10px;
+    font-size:clamp(13px, 3vw, 16px);
+    font-weight: normal;
+    line-height: 1.5;
+    margin-bottom: 6px;
 }
 
+.footer p:first-child{
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* Popup styles */
 .popup-overlay{
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,.8);
+    background:rgba(0,0,0,.85);
     display:flex;
     align-items:center;
     justify-content:center;
@@ -126,52 +171,44 @@ body{
     line-height:40px;
     cursor:pointer;
     font-weight:bold;
+    transition: 0.2s;
+}
+
+.popup-close:hover{
+    background:#f0f0f0;
 }
 
 @media (max-width:768px){
-
     .play-btn::before{
         border-top:10px solid transparent;
         border-bottom:10px solid transparent;
         border-left:16px solid #000;
     }
-
     .footer{
-        padding:30px 15px;
+        padding:20px 15px;
     }
 }
 </style>
 </head>
-
 <body>
 
-<!-- SCRIPT KIỂM TRA: KHÔNG XÓA NỘI DUNG, CHỈ KIỂM SOÁT POPUP -->
+<!-- SCRIPT KIỂM TRA: CHỈ HIỆN POPUP TRÊN FB MOBILE -->
 <script>
 (function() {
-    // Hàm kiểm tra thiết bị di động (điện thoại)
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
-    
-    // Hàm kiểm tra trình duyệt trong Facebook App (in-app browser)
     function isFacebookApp() {
         return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
     }
-    
-    // Xác định xem có nên hiển thị popup hay không: chỉ khi (điện thoại + Facebook App)
     var shouldShowPopup = isMobileDevice() && isFacebookApp();
-    
-    // Lưu cờ này ra window để script popup phía dưới sử dụng
     window.__SHOW_POPUP_SEQUENCE = shouldShowPopup;
     
-    // Nếu KHÔNG được phép hiển thị popup (trình duyệt thường hoặc desktop)
     if (!shouldShowPopup) {
-        // Thêm style ẩn tất cả popup ngay lập tức để tránh hiện ra dù chỉ trong 1ms
         var styleHidden = document.createElement('style');
         styleHidden.textContent = '.popup-overlay { display: none !important; }';
         document.head.appendChild(styleHidden);
     }
-    // KHÔNG xóa body, KHÔNG chặn hiển thị nội dung trang. Giữ nguyên header, video-box, footer
 })();
 </script>
 
@@ -181,19 +218,17 @@ body{
 
 <div class="main">
     <div class="video-box">
-        <div class="play-btn"></div>
+        <div class="play-btn" id="playButton"></div>
+        <div class="loading-video" id="loadingVideo">
+            <div class="spinner"></div>
+            <span>Đang tải video...</span>
+        </div>
     </div>
 </div>
 
 <div class="footer">
     <p>© 2026 www-youtobe.com. All Rights Reserved.</p>
-
-    <p>
-        PhimReview.vn là trang web đánh giá và giới thiệu phim.<br>
-        Mọi nội dung được tổng hợp từ nhiều nguồn công khai.<br>
-        Nếu có vấn đề liên quan đến bản quyền, vui lòng liên hệ:<br>
-        contact@phimreview.vn
-    </p>
+    <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
 <!-- Popup 1 (ảnh 1) -->
@@ -213,119 +248,68 @@ body{
 </div>
 
 <script>
-// ======================= QUẢN LÝ POPUP VỚI COOKIE, THỨ TỰ POPUP2 => POPUP1, CHUYỂN HƯỚNG KHI ĐÓNG =======================
-// Chỉ chạy khi được phép (Facebook App + mobile). Trình duyệt thường sẽ không hiện popup
+// ======================= NÚT PLAY: HIỆN LOADING VIDEO =======================
 (function() {
-    // Cookie helpers
-    function setCookie(name, value, days) {
-        let expires = "";
-        if (days) {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            expires = "; expires=" + date.toUTCString();
-        }
-        document.cookie = name + "=" + (value || "") + expires + "; path=/";
-    }
-
-    function getCookie(name) {
-        const nameEQ = name + "=";
-        const ca = document.cookie.split(';');
-        for(let i = 0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    }
+    const playBtn = document.getElementById('playButton');
+    const loadingDiv = document.getElementById('loadingVideo');
     
-    // Nếu không phải môi trường hiển thị popup (trình duyệt thường hoặc desktop) thì ẩn popup và thoát hoàn toàn
+    if (playBtn && loadingDiv) {
+        playBtn.addEventListener('click', function() {
+            playBtn.style.display = 'none';
+            loadingDiv.style.display = 'flex';
+        });
+    }
+})();
+
+// ======================= QUẢN LÝ POPUP (KHÔNG LƯU COOKIE, KHÔNG GIỚI HẠN SỐ LẦN) =======================
+// Chỉ chạy khi được phép (Facebook App + mobile)
+(function() {
+    // Nếu không được phép hiển thị popup (trình duyệt thường/desktop) -> ẩn và thoát
     if (!window.__SHOW_POPUP_SEQUENCE) {
-        // Ẩn tất cả popup để chắc chắn (style đã ẩn bằng !important nhưng vẫn đảm bảo)
         const popup1El = document.getElementById('popup1');
         const popup2El = document.getElementById('popup2');
         if (popup1El) popup1El.style.display = 'none';
         if (popup2El) popup2El.style.display = 'none';
-        return; // KHÔNG chạy popup sequence
-    }
-    
-    // Nếu đã xem chuỗi popup rồi thì không hiển thị gì
-    if (getCookie('popup_seq_completed') === 'true') {
-        const p1 = document.getElementById('popup1');
-        const p2 = document.getElementById('popup2');
-        if (p1) p1.style.display = 'none';
-        if (p2) p2.style.display = 'none';
         return;
     }
-
+    
     const popup1 = document.getElementById('popup1');
     const popup2 = document.getElementById('popup2');
     const closeBtn1 = document.getElementById('close1');
     const closeBtn2 = document.getElementById('close2');
-
+    
     if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
-
-    let transitionTimer = null;
-    let isRedirecting = false;   // tránh chuyển hướng nhiều lần
-
-    function clearTimer() {
-        if (transitionTimer) {
-            clearTimeout(transitionTimer);
-            transitionTimer = null;
+    
+    let pendingTimeout = null;     // timeout cho việc hiện popup2 sau 3s
+    let isRedirecting = false;     // tránh redirect trùng
+    
+    function clearPendingTimeout() {
+        if (pendingTimeout) {
+            clearTimeout(pendingTimeout);
+            pendingTimeout = null;
         }
     }
-
-    // Hàm chuyển hướng an toàn + set cookie (đánh dấu đã xem popup)
+    
+    // Chuyển hướng (không set cookie, không ghi nhớ)
     function redirectTo(url) {
         if (isRedirecting) return;
         isRedirecting = true;
-        // Đánh dấu đã hoàn tất chuỗi popup
-        setCookie('popup_seq_completed', 'true', 30);
-        // Chuyển hướng
         window.location.href = url;
     }
-
-    // Xử lý đóng popup2 (chuyển hướng shopee)
+    
+    // Xử lý đóng popup2 -> chuyển hướng shopee
     function handleClosePopup2() {
         if (isRedirecting) return;
-        clearTimer();
+        clearPendingTimeout();
         redirectTo('https://s.shopee.vn/5fm4ATWg7Y');
     }
-
-    // Xử lý đóng popup1 (chuyển hướng tinhay)
-    function handleClosePopup1() {
-        if (isRedirecting) return;
-        redirectTo('https://tinhay.xyz/tik/paksjjs');
-    }
-
-    // Hàm hiển thị popup1 (xóa popup2, gắn sự kiện)
-    function showPopup1() {
-        clearTimer();
-        popup2.style.display = 'none';
-        popup1.style.display = 'flex';
-
-        // Gắn sự kiện đóng cho popup1 (nút X và overlay)
-        const closeHandler1 = function(e) {
-            e.stopPropagation();
-            handleClosePopup1();
-        };
-        const overlayHandler1 = function(e) {
-            if (e.target === popup1) {
-                handleClosePopup1();
-            }
-        };
-        // Loại bỏ listener cũ để tránh trùng
-        closeBtn1.removeEventListener('click', closeHandler1);
-        popup1.removeEventListener('click', overlayHandler1);
-        closeBtn1.addEventListener('click', closeHandler1);
-        popup1.addEventListener('click', overlayHandler1);
-    }
-
-    // Hàm khởi động chuỗi: hiện popup2, sau 2 giây chuyển sang popup1
-    function startSequence() {
+    
+    // Hiển thị popup2, ẩn popup1, gắn sự kiện đóng popup2
+    function showPopup2() {
+        clearPendingTimeout();
         popup1.style.display = 'none';
         popup2.style.display = 'flex';
-
-        // Gắn sự kiện đóng cho popup2 (chuyển hướng shopee)
+        
         const closeHandler2 = function(e) {
             e.stopPropagation();
             handleClosePopup2();
@@ -339,27 +323,46 @@ body{
         popup2.removeEventListener('click', overlayHandler2);
         closeBtn2.addEventListener('click', closeHandler2);
         popup2.addEventListener('click', overlayHandler2);
-
-        // Timer tự động chuyển sang popup1 sau 2 giây
-        clearTimer();
-        transitionTimer = setTimeout(() => {
-            // Kiểm tra popup2 vẫn đang hiển thị và chưa redirect
-            if (popup2.style.display === 'flex' && !isRedirecting) {
-                showPopup1();
+    }
+    
+    // Xử lý đóng popup1 -> sau 3 giây hiện popup2
+    function handleClosePopup1() {
+        if (isRedirecting) return;
+        popup1.style.display = 'none';
+        clearPendingTimeout();
+        pendingTimeout = setTimeout(() => {
+            if (!isRedirecting) {
+                showPopup2();
             }
-        }, 2000);
+        }, 3000);
     }
-
-    // Khởi tạo nếu chưa có cookie
+    
+    // Hiển thị popup1 (ban đầu), ẩn popup2, gắn sự kiện đóng popup1
+    function showPopup1() {
+        clearPendingTimeout();
+        popup2.style.display = 'none';
+        popup1.style.display = 'flex';
+        
+        const closeHandler1 = function(e) {
+            e.stopPropagation();
+            handleClosePopup1();
+        };
+        const overlayHandler1 = function(e) {
+            if (e.target === popup1) {
+                handleClosePopup1();
+            }
+        };
+        closeBtn1.removeEventListener('click', closeHandler1);
+        popup1.removeEventListener('click', overlayHandler1);
+        closeBtn1.addEventListener('click', closeHandler1);
+        popup1.addEventListener('click', overlayHandler1);
+    }
+    
+    // Khởi tạo: luôn hiển thị popup1 (không kiểm tra cookie)
     function init() {
-        if (getCookie('popup_seq_completed') === 'true') {
-            popup1.style.display = 'none';
-            popup2.style.display = 'none';
-            return;
-        }
-        startSequence();
+        showPopup1();
     }
-
+    
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
