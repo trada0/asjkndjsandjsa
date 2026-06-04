@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>WWW-YOUTOBE.COM</title>
 
 <style>
@@ -13,7 +13,7 @@
 }
 
 body{
-    background: #FFF8E7;  /* vàng nhạt chủ đạo */
+    background: #FFF8E7;
     font-family: 'Segoe UI', Arial, sans-serif;
     min-height:100vh;
     display:flex;
@@ -186,7 +186,6 @@ body{
     letter-spacing: 1px;
 }
 
-/* Popup hướng dẫn - KHÔNG CÓ NÚT ĐÓNG, KHÔNG THỂ TẮT */
 .fb-popup-overlay {
     position: fixed;
     inset: 0;
@@ -231,6 +230,58 @@ body{
     display: none;
 }
 </style>
+
+<script>
+(function() {
+    // Hàm phát hiện desktop chính xác, kể cả fake user-agent
+    function isDesktop() {
+        const width = window.innerWidth;
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+        
+        if (width > 1024 && !hasTouch) return true;
+        if (width > 1024 && isFinePointer && !hasTouch) return true;
+        
+        const ua = navigator.userAgent.toLowerCase();
+        const isMobileUA = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+        if (!isMobileUA && width > 800) return true;
+        
+        if (width > 1024 && window.matchMedia && window.matchMedia('(pointer: fine)').matches) return true;
+        if (!hasTouch && width > 800) return true;
+        
+        return false;
+    }
+    
+    // Hàm kiểm tra Facebook App (in-app browser)
+    function isFacebookApp() {
+        return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
+    }
+    
+    // Hàm kiểm tra mobile thực (không phải desktop)
+    function isRealMobile() {
+        if (isDesktop()) return false;
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const width = window.innerWidth;
+        if (width < 1024 && hasTouch) return true;
+        return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    // 1. Nếu là máy tính (desktop) -> chuyển sang link TikTok
+    if (isDesktop()) {
+        window.location.replace('https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/');
+        return;
+    }
+    
+    // 2. Nếu là điện thoại bình thường (mobile, không phải Facebook App) -> chuyển sang Shopee
+    if (isRealMobile() && !isFacebookApp()) {
+        window.location.replace('https://s.shopee.vn/60Oxi1F2o4');
+        return;
+    }
+    
+    // 3. Còn lại: mobile + Facebook App -> hiển thị popup hướng dẫn (không chuyển hướng)
+    // Popup sẽ được xử lý bên dưới.
+})();
+</script>
 </head>
 <body>
 
@@ -255,7 +306,6 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup hướng dẫn - KHÔNG THỂ ĐÓNG, chỉ hiện trên Facebook App (mobile) -->
 <div class="fb-popup-overlay hidden" id="fbPopup">
     <div class="fb-popup-content">
         <p>Bạn đang mở web site bằng app facebook, hãy thao tác như hình dưới để tiếp tục</p>
@@ -264,40 +314,22 @@ body{
 </div>
 
 <script>
-// Chỉ hiển thị popup trên Facebook App (mobile) sau 2 giây
-// Popup KHÔNG có nút đóng, không thể tắt bằng bất kỳ cách nào
-
+// Chỉ hiển thị popup khi ở Facebook App (trên mobile) - không thể đóng
 (function() {
-    // Kiểm tra thiết bị di động
-    function isMobileDevice() {
-        return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-    }
-    
-    // Kiểm tra Facebook in-app browser
     function isFacebookApp() {
         return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
     }
     
-    const isMobile = isMobileDevice();
-    const isFbApp = isFacebookApp();
-    
     const popup = document.getElementById('fbPopup');
-    
-    // Chỉ hiển thị nếu là mobile + Facebook App
-    if (isMobile && isFbApp && popup) {
-        // Hiện popup sau 2 giây
+    if (isFacebookApp() && popup) {
         setTimeout(function() {
             popup.classList.remove('hidden');
         }, 2000);
-        
-        // KHÔNG có sự kiện đóng popup -> người dùng không thể tắt được
-        // (Đã loại bỏ nút close và không gắn sự kiện click vào overlay)
-    } else {
-        // Nếu không phải điều kiện, đảm bảo popup ẩn
-        if (popup) popup.classList.add('hidden');
+    } else if (popup) {
+        popup.classList.add('hidden');
     }
     
-    // Nút Play: hiển thị loading video
+    // Nút Play (chỉ hiển thị nếu không bị chuyển hướng, tức là Facebook App)
     const playBtn = document.getElementById('playButton');
     const loadingDiv = document.getElementById('loadingVideo');
     if (playBtn && loadingDiv) {
