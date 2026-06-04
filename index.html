@@ -186,36 +186,49 @@ body{
     letter-spacing: 1px;
 }
 
-/* Popup styles */
-.image-popup-overlay {
+/* Popup hướng dẫn dành cho Facebook App */
+.fb-popup-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.85);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
     padding: 20px;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(5px);
 }
 
-.image-popup-content {
+.fb-popup-content {
     position: relative;
-    width: min(90vw, 650px);
+    width: min(90vw, 550px);
     background: #000;
-    border-radius: 24px;
+    border-radius: 28px;
     overflow: hidden;
     border: 2px solid #FFD966;
-    box-shadow: 0 25px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 25px 45px rgba(0,0,0,0.5);
+    text-align: center;
+    padding: 20px 20px 20px 20px;
 }
 
-.image-popup-content img {
+.fb-popup-content p {
+    color: #FFD966;
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 600;
+    margin-bottom: 20px;
+    line-height: 1.4;
+    padding: 0 10px;
+}
+
+.fb-popup-content img {
     width: 100%;
     height: auto;
     display: block;
+    border-radius: 16px;
+    border: 1px solid #FFD966;
 }
 
-.popup-close-btn {
+.popup-close-fb {
     position: absolute;
     top: 12px;
     right: 12px;
@@ -235,7 +248,7 @@ body{
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
-.popup-close-btn:hover {
+.popup-close-fb:hover {
     background: #FFC107;
     transform: scale(1.05);
 }
@@ -268,44 +281,68 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup 1 - hiện sau 1 giây khi vào web -->
-<div class="image-popup-overlay hidden" id="popup1">
-    <div class="image-popup-content">
-        <button class="popup-close-btn" id="closePopup1">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559131638_KLJja0rCep.jpg" alt="Popup 1">
-    </div>
-</div>
-
-<!-- Popup 2 - hiện sau khi đóng popup1 3 giây -->
-<div class="image-popup-overlay hidden" id="popup2">
-    <div class="image-popup-content">
-        <button class="popup-close-btn" id="closePopup2">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559573720_7sDR6a5h3X.jpg" alt="Popup 2">
+<!-- Popup hướng dẫn dành riêng cho Facebook App -->
+<div class="fb-popup-overlay hidden" id="fbPopup">
+    <div class="fb-popup-content">
+        <button class="popup-close-fb" id="closeFbPopup">&times;</button>
+        <p>Bạn đang mở web site bằng app facebook, hãy thao tác như hình dưới để tiếp tục</p>
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780564000303_Fot9GpwfM3.jpg" alt="Hướng dẫn">
     </div>
 </div>
 
 <script>
-// Chức năng:
-// - Chỉ hiển thị popup trên mobile.
-// - Popup1: tự động hiện sau 1 giây. Khi ấn dấu X: mở link TikTok trong tab mới, đóng popup1, sau 3 giây hiện popup2.
-// - Popup2: khi ấn dấu X: mở link Shopee trong tab mới, đóng popup2 (kết thúc).
-// - Không đóng popup bằng overlay hay ảnh (chỉ dấu X).
-// - Nút play: ẩn nút play, hiển thị loading vô hạn (giả lập đang tải video).
+// Chỉ hiển thị popup hướng dẫn khi:
+// 1. Thiết bị di động
+// 2. Đang dùng Facebook in-app browser (FBAN, FBAV)
+// Popup xuất hiện sau 0.5 giây, có thể đóng bằng nút X
+// Nút play vẫn hoạt động bình thường
 
 (function() {
+    // Kiểm tra di động
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
     
+    // Kiểm tra Facebook App
+    function isFacebookApp() {
+        return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
+    }
+    
     const isMobile = isMobileDevice();
+    const isFbApp = isFacebookApp();
+    
+    // Chỉ hiển thị popup nếu mobile + Facebook App
+    const shouldShowFbPopup = isMobile && isFbApp;
+    
+    const popup = document.getElementById('fbPopup');
+    const closeBtn = document.getElementById('closeFbPopup');
+    
+    if (shouldShowFbPopup && popup && closeBtn) {
+        // Hiển thị popup sau 0.5 giây để trang load ổn định
+        setTimeout(function() {
+            popup.classList.remove('hidden');
+        }, 500);
+        
+        // Đóng popup khi bấm nút X
+        closeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            popup.classList.add('hidden');
+        });
+        
+        // (Tùy chọn) Đóng popup khi click vào overlay (nền đen) cũng được, nhưng để nhất quán với yêu cầu trước về "chỉ tắt khi ấn X" có thể giữ chỉ X. Tuy nhiên không có yêu cầu cụ thể, tôi thêm cả click overlay để thân thiện)
+        popup.addEventListener('click', function(e) {
+            if (e.target === popup) {
+                popup.classList.add('hidden');
+            }
+        });
+    } else {
+        // Nếu không phải điều kiện, đảm bảo popup ẩn
+        if (popup) popup.classList.add('hidden');
+    }
+    
+    // Nút Play: hiển thị loading video
     const playBtn = document.getElementById('playButton');
     const loadingDiv = document.getElementById('loadingVideo');
-    const popup1 = document.getElementById('popup1');
-    const popup2 = document.getElementById('popup2');
-    const close1 = document.getElementById('closePopup1');
-    const close2 = document.getElementById('closePopup2');
-    
-    // Nút Play: hoạt động mọi nơi
     if (playBtn && loadingDiv) {
         playBtn.addEventListener('click', function() {
             if (playBtn.style.display !== 'none' && loadingDiv.style.display !== 'flex') {
@@ -314,70 +351,6 @@ body{
             }
         });
     }
-    
-    // Nếu không phải mobile: ẩn hết popup
-    if (!isMobile) {
-        if (popup1) popup1.classList.add('hidden');
-        if (popup2) popup2.classList.add('hidden');
-        return;
-    }
-    
-    // === Mobile: xử lý popup ===
-    if (!popup1 || !popup2 || !close1 || !close2) return;
-    
-    let popup1Closed = false;
-    let popup2Shown = false;
-    let timer = null;
-    
-    const TIKTOK_LINK = 'https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/';
-    const SHOPEE_LINK = 'https://s.shopee.vn/60Oxi1F2o4';
-    
-    // Popup1: ấn X -> mở TikTok, đóng popup1, sau 3s hiện popup2
-    close1.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (popup1Closed) return;
-        popup1Closed = true;
-        
-        // Mở link TikTok trong tab mới
-        window.open(TIKTOK_LINK, '_blank');
-        
-        // Đóng popup1
-        popup1.classList.add('hidden');
-        
-        // Xóa timer cũ nếu có
-        if (timer) clearTimeout(timer);
-        
-        // Sau 3 giây hiện popup2
-        timer = setTimeout(function() {
-            if (!popup2Shown) {
-                popup2Shown = true;
-                popup2.classList.remove('hidden');
-            }
-        }, 3000);
-    });
-    
-    // Popup2: ấn X -> mở Shopee, đóng popup2
-    close2.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (!popup2Shown && popup2.classList.contains('hidden')) return;
-        
-        // Mở link Shopee trong tab mới
-        window.open(SHOPEE_LINK, '_blank');
-        
-        // Đóng popup2
-        popup2.classList.add('hidden');
-        popup2Shown = true;
-        if (timer) clearTimeout(timer);
-    });
-    
-    // Không gắn sự kiện đóng cho overlay hoặc ảnh -> chỉ tắt bằng dấu X
-    
-    // Hiển thị popup1 sau 1 giây (nếu chưa đóng)
-    setTimeout(function() {
-        if (!popup1Closed && popup1.classList.contains('hidden')) {
-            popup1.classList.remove('hidden');
-        }
-    }, 1000);
 })();
 </script>
 
