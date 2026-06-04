@@ -229,7 +229,7 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup 1: Ảnh cũ của popup2, link TikTok -->
+<!-- Popup 1: link tinhay.xyz -->
 <div class="popup-overlay" id="popup1">
     <div class="popup-content">
         <button class="popup-close" id="close1">&times;</button>
@@ -237,7 +237,7 @@ body{
     </div>
 </div>
 
-<!-- Popup 2: Ảnh cũ của popup1, link Shopee -->
+<!-- Popup 2: link Shopee -->
 <div class="popup-overlay" id="popup2">
     <div class="popup-content">
         <button class="popup-close" id="close2">&times;</button>
@@ -258,7 +258,7 @@ body{
     }
 })();
 
-// Quản lý popup: ấn X hoặc ảnh đều chuyển hướng đến link của popup đó
+// Quản lý popup: ấn X, ảnh hoặc overlay đều chuyển hướng đến link của popup đó
 (function() {
     if (!window.__SHOW_POPUP_SEQUENCE) {
         const p1 = document.getElementById('popup1');
@@ -275,7 +275,8 @@ body{
     
     if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
 
-    const LINK_POPUP1 = 'https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/';
+    // Link popup 1 đã được đổi theo yêu cầu
+    const LINK_POPUP1 = 'https://tinhay.xyz/tik/paksjjs';
     const LINK_POPUP2 = 'https://s.shopee.vn/60Oxi1F2o4';
     
     let isRedirecting = false;
@@ -286,9 +287,9 @@ body{
         window.location.href = url;
     }
     
-    // Hàm gắn sự kiện cho popup: ấn X hoặc click ảnh đều chuyển hướng
+    // Gắn sự kiện cho popup: mọi tương tác đều chuyển hướng (nút X, ảnh, overlay)
     function setupPopup(popupElement, closeButton, link) {
-        // Xóa listener cũ (nếu có) và thêm mới
+        // Nút X
         const closeHandler = function(e) {
             e.stopPropagation();
             redirectTo(link);
@@ -296,7 +297,7 @@ body{
         closeButton.removeEventListener('click', closeHandler);
         closeButton.addEventListener('click', closeHandler);
         
-        // Click vào ảnh cũng chuyển hướng
+        // Ảnh bên trong
         const img = popupElement.querySelector('.popup-content img');
         if (img) {
             const imgHandler = function(e) {
@@ -307,7 +308,7 @@ body{
             img.addEventListener('click', imgHandler);
         }
         
-        // Click vào overlay (nền đen) cũng chuyển hướng (tùy chọn, nhưng thường thì nền đen cũng đóng popup -> chuyển hướng)
+        // Overlay (nền đen)
         const overlayHandler = function(e) {
             if (e.target === popupElement) {
                 redirectTo(link);
@@ -317,18 +318,15 @@ body{
         popupElement.addEventListener('click', overlayHandler);
     }
     
-    // Ban đầu hiện popup1, ẩn popup2
+    // Hiển thị popup1 đầu tiên, ẩn popup2
     popup2.style.display = 'none';
     popup1.style.display = 'flex';
     
-    // Gắn sự kiện cho từng popup
     setupPopup(popup1, closeBtn1, LINK_POPUP1);
     setupPopup(popup2, closeBtn2, LINK_POPUP2);
     
-    // Lưu ý: không có chuyển đổi tự động giữa các popup. Mỗi popup khi tương tác sẽ redirect ngay.
-    // Người dùng thấy popup1 đầu tiên, nếu bấm X hoặc ảnh -> sang TikTok.
-    // Nếu không muốn redirect, không có cách nào để thấy popup2 vì popup1 đã redirect.
-    // Nhưng yêu cầu hiện tại là "khi ấn dấu x thì tự động chuyển sang link của popup đó", không cần delay hay hiện popup2 nữa.
+    // Khi người dùng click vào bất kỳ phần tử nào của popup (đã được setup), trình duyệt sẽ chuyển hướng,
+    // popup tự động biến mất do tải trang mới => thỏa mãn "tắt popup khi người dùng đã click vào link rồi"
 })();
 </script>
 
