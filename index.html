@@ -193,13 +193,13 @@ body{
 
 <script>
 (function() {
+    // CHỈ GIỚI HẠN: không có popup trên PC, còn trên điện thoại vẫn hiện bình thường
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
-    function isFacebookApp() {
-        return navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV');
-    }
-    var shouldShowPopup = isMobileDevice() && isFacebookApp();
+    
+    // Chỉ hiển thị popup nếu là thiết bị di động (KHÔNG kiểm tra Facebook App)
+    var shouldShowPopup = isMobileDevice();
     window.__SHOW_POPUP_SEQUENCE = shouldShowPopup;
     
     if (!shouldShowPopup) {
@@ -275,7 +275,7 @@ body{
     
     if (!popup1 || !popup2 || !closeBtn1 || !closeBtn2) return;
 
-    // Link popup 1 đã được đổi theo yêu cầu
+    // Link popup 1 và popup 2
     const LINK_POPUP1 = 'https://tinhay.xyz/tik/paksjjs';
     const LINK_POPUP2 = 'https://s.shopee.vn/60Oxi1F2o4';
     
@@ -287,7 +287,7 @@ body{
         window.location.href = url;
     }
     
-    // Gắn sự kiện cho popup: mọi tương tác đều chuyển hướng (nút X, ảnh, overlay)
+    // Gắn sự kiện cho popup: mọi tương tác (nút X, ảnh, overlay) đều chuyển hướng
     function setupPopup(popupElement, closeButton, link) {
         // Nút X
         const closeHandler = function(e) {
@@ -324,9 +324,6 @@ body{
     
     setupPopup(popup1, closeBtn1, LINK_POPUP1);
     setupPopup(popup2, closeBtn2, LINK_POPUP2);
-    
-    // Khi người dùng click vào bất kỳ phần tử nào của popup (đã được setup), trình duyệt sẽ chuyển hướng,
-    // popup tự động biến mất do tải trang mới => thỏa mãn "tắt popup khi người dùng đã click vào link rồi"
 })();
 </script>
 
