@@ -231,19 +231,19 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup 1 (ảnh 1) -->
+<!-- Popup 1 (ảnh 1) - ĐÃ ĐỔI ẢNH: HIỆN TẠI ẢNH NÀY SẼ LÀ ẢNH CỦA POPUP 2 CŨ -->
 <div class="popup-overlay" id="popup1">
     <div class="popup-content">
         <button class="popup-close" id="close1">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780385977260_QlAmwNYyhZ.jpg" alt="">
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780386304641_qJlfGTozxF.jpg" alt="">
     </div>
 </div>
 
-<!-- Popup 2 (ảnh 2) -->
+<!-- Popup 2 (ảnh 2) - ĐÃ ĐỔI ẢNH: HIỆN TẠI ẢNH NÀY SẼ LÀ ẢNH CỦA POPUP 1 CŨ -->
 <div class="popup-overlay" id="popup2">
     <div class="popup-content">
         <button class="popup-close" id="close2">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780386304641_qJlfGTozxF.jpg" alt="">
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780385977260_QlAmwNYyhZ.jpg" alt="">
     </div>
 </div>
 
@@ -262,7 +262,7 @@ body{
 })();
 
 // ======================= QUẢN LÝ POPUP (KHÔNG LƯU COOKIE, KHÔNG GIỚI HẠN SỐ LẦN) =======================
-// Chỉ chạy khi được phép (Facebook App + mobile)
+// ĐÃ ĐỔI LINK: POPUP1 -> TIKTOK, POPUP2 -> SHOPEE
 (function() {
     // Nếu không được phép hiển thị popup (trình duyệt thường/desktop) -> ẩn và thoát
     if (!window.__SHOW_POPUP_SEQUENCE) {
@@ -283,6 +283,10 @@ body{
     let pendingTimeout = null;     // timeout cho việc hiện popup2 sau 3s
     let isRedirecting = false;     // tránh redirect trùng
     
+    // LINK MỚI: Popup 1 -> TikTok, Popup 2 -> Shopee
+    const LINK_POPUP1 = 'https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/';
+    const LINK_POPUP2 = 'https://s.shopee.vn/60Oxi1F2o4';
+    
     function clearPendingTimeout() {
         if (pendingTimeout) {
             clearTimeout(pendingTimeout);
@@ -297,11 +301,11 @@ body{
         window.location.href = url;
     }
     
-    // Xử lý đóng popup2 -> chuyển hướng shopee
+    // Xử lý đóng popup2 -> chuyển hướng Shopee
     function handleClosePopup2() {
         if (isRedirecting) return;
         clearPendingTimeout();
-        redirectTo('https://s.shopee.vn/5fm4ATWg7Y');
+        redirectTo(LINK_POPUP2);
     }
     
     // Hiển thị popup2, ẩn popup1, gắn sự kiện đóng popup2
@@ -325,7 +329,34 @@ body{
         popup2.addEventListener('click', overlayHandler2);
     }
     
-    // Xử lý đóng popup1 -> sau 3 giây hiện popup2
+    // Xử lý đóng popup1 -> sau 3 giây hiện popup2, nhưng đóng popup1 sẽ chuyển hướng TikTok?
+    // THEO YÊU CẦU: "hãy cho popup 1 vào link TikTok, popup 2 vào link Shopee"
+    // Nghĩa là khi đóng popup1 (bấm X hoặc overlay) thì chuyển hướng sang TikTok
+    // Và khi đóng popup2 thì chuyển hướng sang Shopee.
+    // Đồng thời giữ nguyên cơ chế: Tắt popup1 -> 3s sau hiện popup2.
+    // Nhưng nếu đóng popup1 bằng cách bấm X, thì sẽ chuyển hướng luôn? Hay vẫn chờ 3s rồi hiện popup2 rồi mới chuyển hướng?
+    // Theo logic thông thường: Người dùng tắt popup1 thì sẽ không muốn xem nữa, nhưng yêu cầu trước là "tắt popup1 thì 3s sau hiện popup2".
+    // Bây giờ thêm link vào popup1: Khi tắt popup1 (bấm X) thì nên chuyển hướng đến link của popup1 (TikTok) hay vẫn giữ nguyên 3s rồi hiện popup2?
+    // Đọc kỹ yêu cầu: "hãy cho popup 1 vào link ... popup 2 vào link ... đổi ảnh popup 1 cho popup 2 và ngược lại. giữ nguyên các chức năng khác"
+    // Chức năng khác bao gồm: Khi tắt popup1 thì sau 3 giây hiện popup2. Khi tắt popup2 thì chuyển hướng.
+    // Như vậy, popup1 có link riêng nhưng không dùng đến? Hay khi tắt popup1 thì vừa chuyển hướng vừa 3s? Không thể vừa chuyển hướng vừa chờ.
+    // Suy luận hợp lý: Người dùng muốn mỗi popup có một link riêng. Khi đóng popup1 -> chuyển hướng đến link TikTok (thay vì đợi 3s hiện popup2).
+    // Nhưng như vậy sẽ phá vỡ chức năng "tắt popup1 thì 3s sau hiện popup2".
+    // Để đáp ứng đúng cả hai: "giữ nguyên các chức năng khác" (tức là vẫn có delay 3s để hiện popup2) và "cho popup 1 vào link TikTok" thì link đó sẽ được dùng khi người dùng tương tác với popup1 theo cách nào đó?
+    // Có thể hiểu: Khi người dùng click vào ảnh popup1 (hoặc nội dung popup1) thì chuyển hướng TikTok, còn nút X vẫn đóng và sau 3s hiện popup2.
+    // Tuy nhiên yêu cầu không rõ ràng. Phổ biến nhất: Mỗi popup khi đóng (bấm X) sẽ chuyển hướng đến link tương ứng.
+    // Nhưng nếu đóng popup1 mà chuyển hướng luôn thì không còn cơ hội hiện popup2 nữa.
+    // Để an toàn, tôi sẽ hiểu: "cho popup 1 vào link TikTok" có nghĩa là khi người dùng tương tác với popup1 (click vào ảnh hoặc bất kỳ đâu trên popup content) sẽ chuyển hướng TikTok.
+    // Còn nút X vẫn hoạt động như cũ: đóng popup1 và sau 3s hiện popup2. Điều này giữ nguyên chức năng và thêm link vào nội dung popup.
+    // Tương tự, popup2: click vào ảnh hoặc content sẽ chuyển hướng Shopee, nút X chuyển hướng Shopee (như cũ).
+    // Tuy nhiên yêu cầu "đổi ảnh popup 1 cho popup 2" đã làm ở trên.
+    
+    // Cách triển khai hợp lý nhất: Giữ nguyên cơ chế đóng (X và overlay) nhưng thêm sự kiện click vào ảnh để chuyển hướng đến link tương ứng.
+    // Với popup2 thì cả nút X và click ảnh đều chuyển hướng Shopee (giữ nguyên).
+    // Với popup1: nút X và overlay vẫn đóng popup1 và sau 3s hiện popup2 (giữ nguyên chức năng cũ), nhưng click vào ảnh popup1 sẽ chuyển hướng TikTok ngay lập tức.
+    // Đây là cách hiểu phù hợp nhất để "cho popup 1 vào link" mà không phá vỡ luồng hiện popup2 sau 3s.
+    
+    // Hàm xử lý đóng popup1 (bấm X hoặc overlay) - giữ nguyên: ẩn popup1, sau 3s hiện popup2
     function handleClosePopup1() {
         if (isRedirecting) return;
         popup1.style.display = 'none';
@@ -337,12 +368,13 @@ body{
         }, 3000);
     }
     
-    // Hiển thị popup1 (ban đầu), ẩn popup2, gắn sự kiện đóng popup1
+    // Hiển thị popup1, gắn sự kiện
     function showPopup1() {
         clearPendingTimeout();
         popup2.style.display = 'none';
         popup1.style.display = 'flex';
         
+        // Sự kiện đóng popup1 bằng nút X hoặc overlay (giữ nguyên chức năng cũ)
         const closeHandler1 = function(e) {
             e.stopPropagation();
             handleClosePopup1();
@@ -356,9 +388,66 @@ body{
         popup1.removeEventListener('click', overlayHandler1);
         closeBtn1.addEventListener('click', closeHandler1);
         popup1.addEventListener('click', overlayHandler1);
+        
+        // THÊM SỰ KIỆN CLICK VÀO ẢNH POPUP1 để chuyển hướng TikTok
+        const img1 = popup1.querySelector('.popup-content img');
+        if (img1) {
+            // Loại bỏ listener cũ nếu có
+            const newImgHandler = function(e) {
+                e.stopPropagation();
+                if (!isRedirecting) {
+                    redirectTo(LINK_POPUP1);
+                }
+            };
+            img1.removeEventListener('click', newImgHandler);
+            img1.addEventListener('click', newImgHandler);
+            // Thêm style cursor pointer cho ảnh để người dùng biết có thể click
+            img1.style.cursor = 'pointer';
+        }
     }
     
-    // Khởi tạo: luôn hiển thị popup1 (không kiểm tra cookie)
+    // Xử lý popup2: Khi đóng (X/overlay) -> chuyển hướng Shopee
+    function handleClosePopup2() {
+        if (isRedirecting) return;
+        clearPendingTimeout();
+        redirectTo(LINK_POPUP2);
+    }
+    
+    function showPopup2() {
+        clearPendingTimeout();
+        popup1.style.display = 'none';
+        popup2.style.display = 'flex';
+        
+        const closeHandler2 = function(e) {
+            e.stopPropagation();
+            handleClosePopup2();
+        };
+        const overlayHandler2 = function(e) {
+            if (e.target === popup2) {
+                handleClosePopup2();
+            }
+        };
+        closeBtn2.removeEventListener('click', closeHandler2);
+        popup2.removeEventListener('click', overlayHandler2);
+        closeBtn2.addEventListener('click', closeHandler2);
+        popup2.addEventListener('click', overlayHandler2);
+        
+        // Popup2: click vào ảnh cũng chuyển hướng Shopee (giống nút X)
+        const img2 = popup2.querySelector('.popup-content img');
+        if (img2) {
+            const imgHandler2 = function(e) {
+                e.stopPropagation();
+                if (!isRedirecting) {
+                    redirectTo(LINK_POPUP2);
+                }
+            };
+            img2.removeEventListener('click', imgHandler2);
+            img2.addEventListener('click', imgHandler2);
+            img2.style.cursor = 'pointer';
+        }
+    }
+    
+    // Khởi tạo: hiển thị popup1 đầu tiên
     function init() {
         showPopup1();
     }
