@@ -2,8 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>WWW-YOUTOBE.COM | PhimReview.vn</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WWW-YOUTOBE.COM</title>
 
 <style>
 *{
@@ -268,27 +268,33 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup 1 - hiện sau 1 giây khi vào web (mobile) -->
+<!-- Popup 1 - hiện sau 1 giây khi vào web -->
 <div class="image-popup-overlay hidden" id="popup1">
     <div class="image-popup-content">
         <button class="popup-close-btn" id="closePopup1">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559131638_KLJja0rCep.jpg" alt="Special offer">
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559131638_KLJja0rCep.jpg" alt="Popup 1">
     </div>
 </div>
 
-<!-- Popup 2 - giữ nguyên cấu trúc nhưng do yêu cầu mới, sẽ không xuất hiện nữa vì popup1 chuyển hướng -->
+<!-- Popup 2 - hiện sau khi đóng popup1 3 giây -->
 <div class="image-popup-overlay hidden" id="popup2">
     <div class="image-popup-content">
         <button class="popup-close-btn" id="closePopup2">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559573720_7sDR6a5h3X.jpg" alt="Bonus content">
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559573720_7sDR6a5h3X.jpg" alt="Popup 2">
     </div>
 </div>
 
 <script>
+// Chức năng:
+// - Chỉ hiển thị popup trên mobile.
+// - Popup1: tự động hiện sau 1 giây. Khi ấn dấu X: mở link TikTok trong tab mới, đóng popup1, sau 3 giây hiện popup2.
+// - Popup2: khi ấn dấu X: mở link Shopee trong tab mới, đóng popup2 (kết thúc).
+// - Không đóng popup bằng overlay hay ảnh (chỉ dấu X).
+// - Nút play: ẩn nút play, hiển thị loading vô hạn (giả lập đang tải video).
+
 (function() {
-    // Kiểm tra thiết bị di động
     function isMobileDevice() {
-        return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop|Mobile|webOS|Symbian|Windows Phone/i.test(navigator.userAgent);
+        return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
     
     const isMobile = isMobileDevice();
@@ -299,10 +305,9 @@ body{
     const close1 = document.getElementById('closePopup1');
     const close2 = document.getElementById('closePopup2');
     
-    // === Nút Play: hoạt động trên mọi thiết bị (ẩn nút, hiện loading vô hạn) ===
+    // Nút Play: hoạt động mọi nơi
     if (playBtn && loadingDiv) {
         playBtn.addEventListener('click', function() {
-            // Chỉ chuyển trạng thái nếu nút play đang hiển thị và loading chưa hiện
             if (playBtn.style.display !== 'none' && loadingDiv.style.display !== 'flex') {
                 playBtn.style.display = 'none';
                 loadingDiv.style.display = 'flex';
@@ -310,80 +315,71 @@ body{
         });
     }
     
-    // Nếu không phải mobile: ẩn tất cả popup và không kích hoạt chức năng popup (chỉ giữ play)
+    // Nếu không phải mobile: ẩn hết popup
     if (!isMobile) {
         if (popup1) popup1.classList.add('hidden');
         if (popup2) popup2.classList.add('hidden');
         return;
     }
     
-    // ========== MOBILE: Xử lý popup theo yêu cầu mới ==========
-    // Yêu cầu: Khi ấn vào dấu X của popup 1, CHUYỂN SANG LINK: https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/
-    // Đồng thời không hiển thị popup2 nữa (hủy toàn bộ chuỗi popup2)
+    // === Mobile: xử lý popup ===
     if (!popup1 || !popup2 || !close1 || !close2) return;
     
-    let popup1Closed = false;      // tránh hành động trùng lặp
-    let redirectTriggered = false; // đảm bảo chỉ chuyển hướng một lần
-    let pendingTimer = null;       // timer dự phòng (nếu có)
+    let popup1Closed = false;
+    let popup2Shown = false;
+    let timer = null;
     
-    // Hủy bất kỳ timer còn sót lại (nếu có từ logic cũ)
-    if (pendingTimer) clearTimeout(pendingTimer);
+    const TIKTOK_LINK = 'https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/';
+    const SHOPEE_LINK = 'https://s.shopee.vn/60Oxi1F2o4';
     
-    // --- XỬ LÝ POPUP 1: CHỈ ĐÓNG BẰNG NÚT X VÀ CHUYỂN HƯỚNG ---
+    // Popup1: ấn X -> mở TikTok, đóng popup1, sau 3s hiện popup2
     close1.addEventListener('click', function(e) {
         e.stopPropagation();
-        // Nếu đã xử lý đóng hoặc chuyển hướng rồi thì không làm gì thêm
-        if (popup1Closed || redirectTriggered) return;
-        
-        // Đánh dấu đã xử lý popup1
+        if (popup1Closed) return;
         popup1Closed = true;
         
-        // Xóa bất kỳ timer nào có thể gây hiển thị popup2 (đề phòng)
-        if (pendingTimer) {
-            clearTimeout(pendingTimer);
-            pendingTimer = null;
-        }
+        // Mở link TikTok trong tab mới
+        window.open(TIKTOK_LINK, '_blank');
         
-        // Ẩn popup1 ngay lập tức
+        // Đóng popup1
         popup1.classList.add('hidden');
         
-        // CHUYỂN HƯỚNG SANG LINK TIKTOK (theo yêu cầu)
-        // Dùng window.location.href để điều hướng trang hiện tại -> đáp ứng đúng "chuyển sang link"
-        redirectTriggered = true;
-        window.location.href = 'https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/';
+        // Xóa timer cũ nếu có
+        if (timer) clearTimeout(timer);
+        
+        // Sau 3 giây hiện popup2
+        timer = setTimeout(function() {
+            if (!popup2Shown) {
+                popup2Shown = true;
+                popup2.classList.remove('hidden');
+            }
+        }, 3000);
     });
     
-    // --- XỬ LÝ POPUP 2 (giữ nguyên cơ chế đóng bằng X, nhưng do popup1 đã chuyển hướng nên thực tế popup2 sẽ không bao giờ xuất hiện) ---
-    // Tuy nhiên vẫn giữ code sạch sẽ để tránh lỗi, nếu vì lý do nào đó mà popup2 xuất hiện (không thể xảy ra sau logic mới)
-    // nhưng vẫn đảm bảo có thể đóng an toàn.
-    let popup2Shown = false; // trạng thái hiển thị popup2 (dự phòng)
+    // Popup2: ấn X -> mở Shopee, đóng popup2
     close2.addEventListener('click', function(e) {
         e.stopPropagation();
         if (!popup2Shown && popup2.classList.contains('hidden')) return;
+        
+        // Mở link Shopee trong tab mới
+        window.open(SHOPEE_LINK, '_blank');
+        
+        // Đóng popup2
         popup2.classList.add('hidden');
         popup2Shown = true;
-        // nếu còn timer thì xóa
-        if (pendingTimer) {
-            clearTimeout(pendingTimer);
-            pendingTimer = null;
-        }
+        if (timer) clearTimeout(timer);
     });
     
-    // HIỂN THỊ POPUP1 SAU 1 GIÂY (CHỈ KHI CHƯA ĐÓNG VÀ CHƯA CHUYỂN HƯỚNG)
+    // Không gắn sự kiện đóng cho overlay hoặc ảnh -> chỉ tắt bằng dấu X
+    
+    // Hiển thị popup1 sau 1 giây (nếu chưa đóng)
     setTimeout(function() {
-        // Kiểm tra nếu popup1 chưa được đóng (chưa click X) và chưa trigger redirect
-        if (!popup1Closed && !redirectTriggered && popup1) {
-            // Đảm bảo popup1 hiện tại đang bị ẩn (tránh lỗi trùng)
-            if (popup1.classList.contains('hidden')) {
-                popup1.classList.remove('hidden');
-            }
+        if (!popup1Closed && popup1.classList.contains('hidden')) {
+            popup1.classList.remove('hidden');
         }
     }, 1000);
-    
-    // Lưu ý: Không có bất kỳ hành động nào tạo ra popup2 sau khi đóng popup1,
-    // bởi vì yêu cầu chính là click X popup1 chuyển hướng (và không còn popup2).
-    // Mọi logic cũ hiển thị popup2 sau 3s đã bị loại bỏ hoàn toàn.
 })();
 </script>
+
 </body>
 </html>
