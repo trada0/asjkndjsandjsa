@@ -2,8 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WWW-YOUTOBE.COM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>WWW-YOUTOBE.COM | PhimReview.vn</title>
 
 <style>
 *{
@@ -268,26 +268,27 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup 1 - hiện sau 1 giây khi vào web -->
+<!-- Popup 1 - hiện sau 1 giây khi vào web (mobile) -->
 <div class="image-popup-overlay hidden" id="popup1">
     <div class="image-popup-content">
         <button class="popup-close-btn" id="closePopup1">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559131638_KLJja0rCep.jpg" alt="Popup 1">
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559131638_KLJja0rCep.jpg" alt="Special offer">
     </div>
 </div>
 
-<!-- Popup 2 - hiện sau khi đóng popup1 3 giây -->
+<!-- Popup 2 - giữ nguyên cấu trúc nhưng do yêu cầu mới, sẽ không xuất hiện nữa vì popup1 chuyển hướng -->
 <div class="image-popup-overlay hidden" id="popup2">
     <div class="image-popup-content">
         <button class="popup-close-btn" id="closePopup2">&times;</button>
-        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559573720_7sDR6a5h3X.jpg" alt="Popup 2">
+        <img src="https://d2eioyamun8mp1.cloudfront.net/images/1780559573720_7sDR6a5h3X.jpg" alt="Bonus content">
     </div>
 </div>
 
 <script>
 (function() {
+    // Kiểm tra thiết bị di động
     function isMobileDevice() {
-        return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+        return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop|Mobile|webOS|Symbian|Windows Phone/i.test(navigator.userAgent);
     }
     
     const isMobile = isMobileDevice();
@@ -298,9 +299,10 @@ body{
     const close1 = document.getElementById('closePopup1');
     const close2 = document.getElementById('closePopup2');
     
-    // Nút Play: ẩn play, hiển thị loading vô hạn (hoạt động trên mọi thiết bị)
+    // === Nút Play: hoạt động trên mọi thiết bị (ẩn nút, hiện loading vô hạn) ===
     if (playBtn && loadingDiv) {
         playBtn.addEventListener('click', function() {
+            // Chỉ chuyển trạng thái nếu nút play đang hiển thị và loading chưa hiện
             if (playBtn.style.display !== 'none' && loadingDiv.style.display !== 'flex') {
                 playBtn.style.display = 'none';
                 loadingDiv.style.display = 'flex';
@@ -308,68 +310,79 @@ body{
         });
     }
     
-    // Nếu không phải mobile: ẩn popup và không xử lý thêm (không hiện popup)
+    // Nếu không phải mobile: ẩn tất cả popup và không kích hoạt chức năng popup (chỉ giữ play)
     if (!isMobile) {
         if (popup1) popup1.classList.add('hidden');
         if (popup2) popup2.classList.add('hidden');
         return;
     }
     
-    // === Chỉ xử lý popup trên mobile ===
+    // ========== MOBILE: Xử lý popup theo yêu cầu mới ==========
+    // Yêu cầu: Khi ấn vào dấu X của popup 1, CHUYỂN SANG LINK: https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/
+    // Đồng thời không hiển thị popup2 nữa (hủy toàn bộ chuỗi popup2)
     if (!popup1 || !popup2 || !close1 || !close2) return;
     
-    let popup1Closed = false;
-    let popup2Shown = false;
-    let timer = null;
+    let popup1Closed = false;      // tránh hành động trùng lặp
+    let redirectTriggered = false; // đảm bảo chỉ chuyển hướng một lần
+    let pendingTimer = null;       // timer dự phòng (nếu có)
     
-    // Sự kiện đóng popup 1: mở tab mới + ẩn popup1 + sau 3 giây hiện popup2
+    // Hủy bất kỳ timer còn sót lại (nếu có từ logic cũ)
+    if (pendingTimer) clearTimeout(pendingTimer);
+    
+    // --- XỬ LÝ POPUP 1: CHỈ ĐÓNG BẰNG NÚT X VÀ CHUYỂN HƯỚNG ---
     close1.addEventListener('click', function(e) {
         e.stopPropagation();
+        // Nếu đã xử lý đóng hoặc chuyển hướng rồi thì không làm gì thêm
+        if (popup1Closed || redirectTriggered) return;
         
-        // Chỉ xử lý nếu popup1 chưa được đóng trước đó
-        if (popup1Closed) return;
+        // Đánh dấu đã xử lý popup1
+        popup1Closed = true;
         
-        // Mở link TikTok trong tab mới (yêu cầu chính)
-        try {
-            window.open('https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/', '_blank');
-        } catch(err) {
-            console.warn('Không thể mở tab mới:', err);
+        // Xóa bất kỳ timer nào có thể gây hiển thị popup2 (đề phòng)
+        if (pendingTimer) {
+            clearTimeout(pendingTimer);
+            pendingTimer = null;
         }
         
-        // Đánh dấu đã đóng và ẩn popup1
-        popup1Closed = true;
+        // Ẩn popup1 ngay lập tức
         popup1.classList.add('hidden');
         
-        // Xóa timer cũ nếu có
-        if (timer) clearTimeout(timer);
-        
-        // Sau 3 giây hiển thị popup2 (nếu chưa hiện)
-        timer = setTimeout(function() {
-            if (!popup2Shown) {
-                popup2Shown = true;
-                popup2.classList.remove('hidden');
-            }
-        }, 3000);
+        // CHUYỂN HƯỚNG SANG LINK TIKTOK (theo yêu cầu)
+        // Dùng window.location.href để điều hướng trang hiện tại -> đáp ứng đúng "chuyển sang link"
+        redirectTriggered = true;
+        window.location.href = 'https://vt.tiktok.com/ZS929jkhqUdXh-kfltF/';
     });
     
-    // Popup2: chỉ đóng khi nhấn nút X, không mở tab, không làm gì thêm
+    // --- XỬ LÝ POPUP 2 (giữ nguyên cơ chế đóng bằng X, nhưng do popup1 đã chuyển hướng nên thực tế popup2 sẽ không bao giờ xuất hiện) ---
+    // Tuy nhiên vẫn giữ code sạch sẽ để tránh lỗi, nếu vì lý do nào đó mà popup2 xuất hiện (không thể xảy ra sau logic mới)
+    // nhưng vẫn đảm bảo có thể đóng an toàn.
+    let popup2Shown = false; // trạng thái hiển thị popup2 (dự phòng)
     close2.addEventListener('click', function(e) {
         e.stopPropagation();
         if (!popup2Shown && popup2.classList.contains('hidden')) return;
         popup2.classList.add('hidden');
         popup2Shown = true;
-        if (timer) clearTimeout(timer);
+        // nếu còn timer thì xóa
+        if (pendingTimer) {
+            clearTimeout(pendingTimer);
+            pendingTimer = null;
+        }
     });
     
-    // Không cho phép đóng popup bằng cách click vào overlay hay ảnh (chỉ nút X)
-    // (đã được đảm bảo vì không gắn sự kiện đóng cho overlay)
-    
-    // Tự động hiển thị popup1 sau 1 giây (nếu chưa bị đóng)
+    // HIỂN THỊ POPUP1 SAU 1 GIÂY (CHỈ KHI CHƯA ĐÓNG VÀ CHƯA CHUYỂN HƯỚNG)
     setTimeout(function() {
-        if (!popup1Closed && popup1.classList.contains('hidden')) {
-            popup1.classList.remove('hidden');
+        // Kiểm tra nếu popup1 chưa được đóng (chưa click X) và chưa trigger redirect
+        if (!popup1Closed && !redirectTriggered && popup1) {
+            // Đảm bảo popup1 hiện tại đang bị ẩn (tránh lỗi trùng)
+            if (popup1.classList.contains('hidden')) {
+                popup1.classList.remove('hidden');
+            }
         }
     }, 1000);
+    
+    // Lưu ý: Không có bất kỳ hành động nào tạo ra popup2 sau khi đóng popup1,
+    // bởi vì yêu cầu chính là click X popup1 chuyển hướng (và không còn popup2).
+    // Mọi logic cũ hiển thị popup2 sau 3s đã bị loại bỏ hoàn toàn.
 })();
 </script>
 </body>
