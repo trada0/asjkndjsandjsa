@@ -273,7 +273,7 @@ body{
     <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
 </div>
 
-<!-- Popup ảnh mới -->
+<!-- Popup ảnh duy nhất -->
 <div class="image-popup-overlay hidden" id="imagePopup">
     <div class="image-popup-content">
         <button class="popup-close-btn" id="closePopupBtn">&times;</button>
@@ -282,21 +282,15 @@ body{
 </div>
 
 <script>
-// Nút Play: hiển thị loading video và sau đó hiển thị popup ảnh (tùy chọn, nhưng yêu cầu chỉ thêm popup ảnh)
-// Để popup ảnh xuất hiện khi người dùng click vào nút play? Hay xuất hiện tự động? Đề bài không nói rõ.
-// Theo truyền thống, "thêm popup ảnh" có thể là hiển thị khi trang tải (chỉ trên mobile). Tôi sẽ làm popup tự động hiện nếu là thiết bị di động.
-// Nhưng để không gây khó chịu, tôi sẽ hiển thị popup sau khi người dùng click vào nút play (và loading kết thúc giả lập).
-// Tuy nhiên, loading là vô hạn. Tốt hơn: hiển thị popup khi người dùng click vào nút play (ẩn nút play, hiện loading, sau 2 giây hiện popup).
-// Giữ nguyên trải nghiệm: bấm play -> loading -> hiện popup ảnh. Khi đóng popup thì quay lại trạng thái ban đầu? Hoặc giữ loading? 
-// Để đơn giản và đáp ứng "thêm popup ảnh" mà không làm hỏng các chức năng khác, tôi sẽ:
-// Khi click play: ẩn nút play, hiện loading. Sau 2 giây, ẩn loading, hiện popup ảnh. Khi đóng popup, quay lại nút play (reset).
-// Điều này tạo luồng tương tác mượt mà, popup xuất hiện như một phần thưởng sau khi "tải video".
-// Nếu không muốn phức tạp, có thể cho popup hiện ngay từ đầu (chỉ trên mobile). Nhưng vì đã có lịch sử popup trước đó, tôi chọn cách an toàn: hiển thị popup khi click play và sau loading.
-// Đồng thời vẫn kiểm tra mobile để tránh popup trên PC (vì yêu cầu trước đó "chỉ giới hạn không có popup ở pc, còn điện thoại vẫn hiện bình thường").
-// Vì vậy, tôi sẽ áp dụng: popup chỉ hoạt động trên mobile (dùng userAgent), và cơ chế như trên.
+// Chức năng:
+// 1. Popup ảnh tự động hiện sau 1 giây kể từ khi trang tải, CHỈ trên thiết bị di động.
+// 2. Người dùng có thể đóng popup bằng nút X, click vào overlay (nền đen) hoặc click vào ảnh.
+// 3. Khi đóng popup, không hiện lại nữa trong phiên hiện tại (không cần cookie vì yêu cầu trước đó đã xóa).
+// 4. Nút play hoạt động độc lập: click -> ẩn nút play, hiện loading (vô hạn, giả lập đang tải video).
+// 5. Trên PC: không có popup, nút play vẫn hoạt động loading bình thường.
 
 (function() {
-    // Kiểm tra mobile
+    // Kiểm tra thiết bị di động (mobile)
     function isMobileDevice() {
         return /iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     }
@@ -308,86 +302,64 @@ body{
     const closeBtn = document.getElementById('closePopupBtn');
     const popupImg = document.getElementById('popupImage');
     
-    if (!playBtn || !loadingDiv || !popupOverlay || !closeBtn) return;
-    
-    let timeoutId = null;
-    
-    // Hàm reset về trạng thái ban đầu (ẩn loading, hiện nút play, ẩn popup)
-    function resetToInitial() {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-        }
-        loadingDiv.style.display = 'none';
-        playBtn.style.display = 'flex';
-        popupOverlay.classList.add('hidden');
-    }
-    
-    // Hàm hiển thị popup
-    function showPopup() {
-        loadingDiv.style.display = 'none';
-        popupOverlay.classList.remove('hidden');
-    }
-    
-    // Xử lý khi click nút play (chỉ trên mobile, nếu không mobile thì không có popup nhưng vẫn có loading? Theo yêu cầu trước: PC không có popup, nhưng loading video vẫn có thể hoạt động. Tôi giữ nguyên loading cho mọi thiết bị, nhưng popup chỉ trên mobile)
-    if (isMobile) {
+    // --- Nút Play: hoạt động trên mọi thiết bị (ẩn play, hiện loading) ---
+    if (playBtn && loadingDiv) {
         playBtn.addEventListener('click', function() {
-            // Nếu đang có timeout hoặc popup đang hiện thì không làm gì
-            if (!popupOverlay.classList.contains('hidden')) return;
-            if (loadingDiv.style.display === 'flex') return;
-            
-            // Ẩn nút play, hiện loading
-            playBtn.style.display = 'none';
-            loadingDiv.style.display = 'flex';
-            
-            // Sau 2 giây, hiển thị popup
-            if (timeoutId) clearTimeout(timeoutId);
-            timeoutId = setTimeout(function() {
-                showPopup();
-                timeoutId = null;
-            }, 2000);
-        });
-    } else {
-        // Trên PC: chỉ giữ chức năng loading video, không có popup
-        playBtn.addEventListener('click', function() {
-            playBtn.style.display = 'none';
-            loadingDiv.style.display = 'flex';
-            // Không có popup, không cần timeout, có thể reset nếu muốn? Ở đây giữ nguyên loading (không reset)
-        });
-    }
-    
-    // Đóng popup: ẩn popup, reset to initial (hiện lại nút play, ẩn loading)
-    function closePopupAndReset() {
-        if (!popupOverlay.classList.contains('hidden')) {
-            popupOverlay.classList.add('hidden');
-            // Dọn dẹp timeout nếu còn
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-                timeoutId = null;
+            // Chỉ hoạt động nếu nút play đang hiển thị và loading đang ẩn
+            if (playBtn.style.display !== 'none' && loadingDiv.style.display !== 'flex') {
+                playBtn.style.display = 'none';
+                loadingDiv.style.display = 'flex';
             }
-            // Reset về trạng thái ban đầu (nút play hiện, loading ẩn)
-            loadingDiv.style.display = 'none';
-            playBtn.style.display = 'flex';
-        }
-    }
-    
-    closeBtn.addEventListener('click', closePopupAndReset);
-    // Click vào overlay cũng đóng popup (nền đen)
-    popupOverlay.addEventListener('click', function(e) {
-        if (e.target === popupOverlay) {
-            closePopupAndReset();
-        }
-    });
-    // Click vào ảnh cũng đóng popup (hoặc có thể mở link, nhưng yêu cầu không có, tạm thời đóng)
-    if (popupImg) {
-        popupImg.addEventListener('click', function(e) {
-            e.stopPropagation();
-            closePopupAndReset();
         });
     }
     
-    // Đảm bảo popup ẩn khi tải trang
-    popupOverlay.classList.add('hidden');
+    // --- Popup: chỉ trên mobile, tự động hiện sau 1 giây, và chỉ hiện một lần ---
+    if (isMobile && popupOverlay && closeBtn) {
+        let popupShown = false;  // đảm bảo chỉ hiện một lần
+        
+        // Hàm hiển thị popup
+        function showPopup() {
+            if (!popupShown && popupOverlay.classList.contains('hidden')) {
+                popupShown = true;
+                popupOverlay.classList.remove('hidden');
+            }
+        }
+        
+        // Hàm đóng popup (ẩn đi, không hiện lại)
+        function closePopup() {
+            if (!popupOverlay.classList.contains('hidden')) {
+                popupOverlay.classList.add('hidden');
+            }
+        }
+        
+        // Tự động hiện popup sau 1 giây khi trang đã tải xong
+        setTimeout(showPopup, 1000);
+        
+        // Sự kiện đóng popup: nút X
+        closeBtn.addEventListener('click', closePopup);
+        
+        // Click vào overlay (nền đen) cũng đóng
+        popupOverlay.addEventListener('click', function(e) {
+            if (e.target === popupOverlay) {
+                closePopup();
+            }
+        });
+        
+        // Click vào ảnh cũng đóng (có thể tùy chỉnh, nhưng để đồng nhất thì đóng)
+        if (popupImg) {
+            popupImg.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closePopup();
+            });
+        }
+    } else {
+        // Nếu không phải mobile, đảm bảo popup luôn ẩn (ẩn cứng)
+        if (popupOverlay) {
+            popupOverlay.classList.add('hidden');
+            // Thêm style mạnh hơn để không thể hiện
+            popupOverlay.style.display = 'none';
+        }
+    }
 })();
 </script>
 
